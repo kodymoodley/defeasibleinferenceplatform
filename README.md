@@ -1,5 +1,3 @@
-# defeasibleinferenceplatform 
-
 DIP (Defeasible-Inference Platform):
 -------------------------------------------------
 
