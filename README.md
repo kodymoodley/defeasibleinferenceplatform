@@ -7,7 +7,7 @@ Requirements:
 --------------------
 
 - Protege 4.3
-- Java 1.6 or greater
+- Java 1.7 or greater
 
 Installation:
 ----------------
