@@ -12,6 +12,7 @@ import net.za.cair.dip.util.Utility;
 import org.protege.editor.owl.ui.view.AbstractActiveOntologyViewComponent;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.parameters.Imports;
 
 
 /*
@@ -62,7 +63,7 @@ public class StrictAxiomsViewComponent extends AbstractActiveOntologyViewCompone
 	
 	private Set<OWLAxiom> getStrictAxioms(OWLOntology ontology){
 		Set<OWLAxiom> strictAxioms = new HashSet<OWLAxiom>();
-		for (OWLAxiom axiom: getOWLModelManager().getActiveOntology().getTBoxAxioms(true)){
+		for (OWLAxiom axiom: getOWLModelManager().getActiveOntology().getTBoxAxioms(Imports.EXCLUDED)){
 			Utility u = new Utility();
 			if (!u.isDefeasible(axiom))
 				strictAxioms.add(axiom);

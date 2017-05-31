@@ -68,9 +68,9 @@ public class ReasoningType implements Serializable{
         REASONING_TYPES.add(RATIONAL);
         //REASONING_TYPES.add(LEX_RELEVANT);
        
-        REASONING_TYPES.add(RELEVANT);
-        REASONING_TYPES.add(MIN_RELEVANT);
-        REASONING_TYPES.add(LEXICOGRAPHIC);
+        //REASONING_TYPES.add(RELEVANT);
+        //REASONING_TYPES.add(MIN_RELEVANT);
+        //REASONING_TYPES.add(LEXICOGRAPHIC);
         //REASONING_TYPES.add(TARSKIAN);
         
         int count = 0;

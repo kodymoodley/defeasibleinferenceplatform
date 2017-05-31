@@ -21,10 +21,13 @@ import javax.swing.plaf.basic.BasicComboBoxRenderer;
 import java.lang.management.ManagementFactory;
 
 import net.za.cair.dip.DefeasibleInferenceComputer;
+import net.za.cair.dip.DefeasibleInferenceHelperClass;
 import net.za.cair.dip.model.OntologyStructure;
+import net.za.cair.dip.model.Query;
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
+import net.za.cair.dip.transform.RationalRankingAlgorithm;
 import net.za.cair.dip.ui.list.RankingAxiomsList;
 import net.za.cair.dip.util.Utility;
 
@@ -74,15 +77,15 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     private static final long serialVersionUID = -4515710047558710080L;
-    private JComponent resultsPanel, editorPanel, resultsList2;
+    private JComponent resultsPanel, editorPanel;
     private OWLReasonerFactory reasonerFactory;
     //public static final String[] reasoningTypes = ReasoningType.getReasoningTypes();
     public static OWLAnnotationProperty rampQueryProperty;
-    private JPanel editorToolsPanel, axiomCheckPanel;
+    private JPanel editorToolsPanel, clsExpressionCheckPanel;
     private ExpressionEditor<OWLClassExpression> classInclusionBox;
-    private RankingAxiomsList resultsList;
+    private ExceptionsList exceptionRanking;
     private ArrayList<OWLAxiom> ontology;
-    private JButton checkButton,addButton;                
+    private JButton checkButton;             
     private JCheckBox box;        
     private JComboBox reasoningList; 
     private Utility u; 
@@ -99,7 +102,6 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     
     @Override
     protected void disposeOWLView() {
-    	resultsList2.revalidate();
     	getOWLModelManager().removeOntologyChangeListener(listener);
     }
 
@@ -127,7 +129,6 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
         classInclusionBox.addStatusChangedListener(new InputVerificationStatusChangedListener(){
             public void verifiedStatusChanged(boolean newState) {
                 checkButton.setEnabled(newState);
-                addButton.setEnabled(newState);
             }
         });
         classInclusionBox.setPreferredSize(new Dimension(100, 50));
@@ -260,96 +261,25 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
 	   /********** Preprocessing Stage ***********/
 	   OntologyStructure structure = new OntologyStructure(getOWLModelManager().getActiveOntology());
 	   ReasoningType algorithm = ReasoningType.NAME_TYPE_MAP.get((String)reasoningList.getSelectedItem());
-	  // RankingConstruction rankingConstruction = new RankingConstruction(axiom, reasonerFactory, structure, algorithm);
-	   
-	   
+	   RationalRankingAlgorithm rankingConstruction = new RationalRankingAlgorithm(reasonerFactory, structure, new HashSet<OWLClassExpression>());
+	   Ranking ranking = rankingConstruction.computeRanking();
+	   Rank infiniteRank = rankingConstruction.getInfiniteRank();
+	   DefeasibleInferenceHelperClass dihc = new DefeasibleInferenceHelperClass(reasonerFactory, ranking);
+	   ArrayList<Rank> ccompatRanks =  dihc.getCCompatibleSubset(ranking.getRanking(), clsEx);
+	   OWLClassExpression ccompatConcept = dihc.getInternalisation(ccompatRanks);
+			   
 	   boolean defeasible = false;
 	   if (!box.isSelected())
 		   defeasible = true;
-	
-	   //Query query = new Query(axiom, algorithm, rankingConstruction, defeasible);
-	   /*****************************************/
-	
-	   /********* Classical Entailment ********/
-	   /*if (algorithm.equals(ReasoningType.TARSKIAN)){
-		   resultsList.displayAxiomRanking(null, axiom, algorithm, false);
-		   OWLReasoner reasoner = reasonerFactory.createReasoner(getOWLModelManager().getActiveOntology());
-		   if (reasoner.isEntailed(axiom))
-			   updateUIWithResult(true);
-		   else
-			   updateUIWithResult(false);
-	   }
-	   /********* Defeasible Entailment ********/
-	   else{
-		   /********* Defeasible query ************/
-		   if (defeasible){
-			   DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(reasonerFactory, getOWLModelManager().getActiveOntology());	
-			   //resultsList.displayAxiomRanking(rankingConstruction.getRanking(), query.originalAxiom, algorithm, true);
-			   //boolean result = dic.isEntailed(query);
-			   //if (result)	
-			//	   updateUIWithResult(true);
-			  // else
-				//   updateUIWithResult(false);	            		            									
-		   } 
-		   /********* Classical query ************/
-		   //else{
-			   resultsList.clear();
-			   Set<OWLAxiom> allAxioms = new HashSet<OWLAxiom>();
-			   for (OWLAxiom a: getOWLModelManager().getActiveOntology().getLogicalAxioms()){
-				   allAxioms.add(a);
-			   }
-			   Set<OWLAxiom> hardAxioms = new HashSet<OWLAxiom>();
-			   for (OWLAxiom a: allAxioms){
-				   if (!u.isDefeasible(a))
-					   hardAxioms.add(a);
-			   }
-			   
-			   ArrayList<OWLAxiom> strictAxioms = new ArrayList<OWLAxiom>(hardAxioms);
-			   if (strictAxioms.size() > 0){
-				   Rank strictRank = new Rank(strictAxioms);
-				   Ranking strictRanking = new Ranking();
-				   strictRanking.add(strictRank);
-			   
-				   OWLOntology ontology = null;
-				   try{
-					   OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
-					   ontology = ontologyManager.createOntology(hardAxioms);
-				   }
-				   catch (OWLOntologyCreationException e1) {e1.printStackTrace();}
-				   OWLReasoner reasoner = getOWLModelManager().getOWLReasonerManager().getCurrentReasonerFactory().getReasonerFactory().createReasoner(ontology);			
-				   //resultsList.displayAxiomRanking(strictRanking, clsEx, algorithm, false);
-				   //reasoner.getSuperClasses(arg0, arg1);
-				/*	   updateUIWithResult(true);
-				   else
-					   updateUIWithResult(false);*/
-			   }
-			   else{
-				   //resultsList.displayAxiomRanking(null, axiom, algorithm, false);
-				   updateUIWithResult(false);
-			   }
-		   }
-	   //}
-   }
-   
-   private void updateUIWithResult(boolean result){
-	   if (result){
-		   resultsList2.removeAll();
-           resultsList2.add(Utility.tickLabel);
-           resultsList2.revalidate();
-           resultsList2.repaint();		            			
-           float [] hsbval = null;
-           hsbval = Color.RGBtoHSB(228, 255, 225, hsbval);
-           classInclusionBox.setBackground(Color.getHSBColor(hsbval[0], hsbval[1], hsbval[2]));
-	   }
-	   else{
-		   resultsList2.removeAll();
-           resultsList2.add(Utility.crossLabel);
-           resultsList2.revalidate();
-           resultsList2.repaint();
-           float [] hsbval = null;
-           hsbval = Color.RGBtoHSB(255,228,225, hsbval);
-           classInclusionBox.setBackground(Color.getHSBColor(hsbval[0], hsbval[1], hsbval[2]));
-	   }
+	   
+	   /********* Defeasible query ************/
+	   if (defeasible){
+		   DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(reasonerFactory, getOWLModelManager().getActiveOntology());
+		   dic.computeSuperClasses(clsEx, ccompatConcept, infiniteRank);
+		   Set<OWLClass> typicalSuperClasses = dic.getSuperClassesTypical();
+		   Set<OWLClass> strictSuperClasses = dic.getSuperClassesStrict();
+		   exceptionRanking.setExceptionsList(ranking);
+	   } 	  
    }
     
    /**
@@ -371,13 +301,7 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     			classInclusionBox.setText(axiomStr);
     			box.setSelected(true);
     		}
-    	}
-    	
-        resultsList2 = new JPanel();
-        resultsList2.removeAll();
-        resultsList2.add(Utility.noneLabel);
-        resultsList2.revalidate();
-        resultsList2.repaint();
+    	}    	    
     	
         checkButton = new JButton(new AbstractAction("Check") {			
 			private static final long serialVersionUID = 1L;
@@ -394,15 +318,7 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
 				} catch (OWLException e1) {	}
 				catch (NullPointerException n){	}
 			}	
-		});
-        
-        addButton = new JButton(new AbstractAction("Save") {			
-			private static final long serialVersionUID = 1L;
-			public void actionPerformed(ActionEvent e){
-				//OWLClassExpression c = getClassExpression();
-				//addToQueryBox(c);
-			}	
-		});
+		});               
          
         constructFinalPanel();                                             
         return editorPanel;
@@ -415,9 +331,10 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     public JComponent createResult(){
         JComponent resultsPanel = new JPanel(new BorderLayout());
         resultsPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
-                 Color.LIGHT_GRAY), "Ranking"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));                
-        resultsList = new RankingAxiomsList(getOWLEditorKit(), getOWLEditorKit().getModelManager());
-        resultsPanel.add(ComponentFactory.createScrollPane(resultsList));       
+                 Color.LIGHT_GRAY), "Exceptions"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));                
+        exceptionRanking = new ExceptionsList(getOWLEditorKit());
+        
+        resultsPanel.add(ComponentFactory.createScrollPane(exceptionRanking));       
         return resultsPanel;
      }
     
@@ -426,9 +343,9 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
      */
     private void initializeComponents(){
     	editorPanel = new JPanel(new BorderLayout());    	        
-    	axiomCheckPanel = new JPanel(new GridLayout(2,1));                                                                                                 
-        axiomCheckPanel.add(ComponentFactory.createScrollPane(classInclusionBox), BorderLayout.CENTER);
-        axiomCheckPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(      
+    	clsExpressionCheckPanel = new JPanel(new GridLayout(2,1));                                                                                                 
+        clsExpressionCheckPanel.add(ComponentFactory.createScrollPane(classInclusionBox), BorderLayout.CENTER);
+        clsExpressionCheckPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(      
         		Color.LIGHT_GRAY), "Query (class expression)"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));        
         editorToolsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));   
         box = new JCheckBox("Strict axiom?"); 
@@ -439,13 +356,10 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
      */
     private void constructFinalPanel(){
     	editorToolsPanel.add(reasoningList);
-    	editorToolsPanel.add(addButton);
     	editorToolsPanel.add(checkButton);
-        editorToolsPanel.add(box);        
-        editorToolsPanel.add(resultsList2);
-        
-        axiomCheckPanel.add(editorToolsPanel);    
-        editorPanel.add(axiomCheckPanel, BorderLayout.NORTH);
+        editorToolsPanel.add(box);                
+        clsExpressionCheckPanel.add(editorToolsPanel);    
+        editorPanel.add(clsExpressionCheckPanel, BorderLayout.NORTH);
     }
 
     /**

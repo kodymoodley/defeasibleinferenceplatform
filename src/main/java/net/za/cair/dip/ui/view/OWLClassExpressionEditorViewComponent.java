@@ -270,6 +270,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
         resultsPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
                 Color.LIGHT_GRAY), "Results"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
         resultsList = new ResultsList(getOWLEditorKit());
+        resultsList.setShowSuperClasses(true);
         //resultsList.setShowSubClasses(true);
         JComponent mainResultPanel = new JPanel(new GridLayout(1,1));
         mainResultPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(

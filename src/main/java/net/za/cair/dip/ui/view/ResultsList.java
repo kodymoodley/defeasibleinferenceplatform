@@ -1,53 +1,38 @@
 package net.za.cair.dip.ui.view;
 
-import java.awt.Frame;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import net.za.cair.dip.DefeasibleInferenceComputer;
-import net.za.cair.dip.model.OntologyStructure;
-import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
-import net.za.cair.dip.transform.RationalRankingAlgorithm;
 import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
-import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
 import org.protege.editor.owl.OWLEditorKit;
 import org.protege.editor.owl.ui.OWLClassExpressionComparator;
-import org.protege.editor.owl.ui.explanation.ExplanationManager;
-import org.protege.editor.owl.ui.framelist.ExplainButton;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponent;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponentMediator;
 import org.protege.editor.owl.ui.view.Copyable;
-import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLIndividual;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.Node;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 
 /**
@@ -175,31 +160,55 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     	List<Object> data = new ArrayList<Object>();
         OWLDataFactory factory = owlEditorKit.getOWLModelManager().getOWLDataFactory();
         //OWLReasoner reasoner = owlEditorKit.getModelManager().getReasoner();
-        //if (showSuperClasses) {
-        	/*System.out.println("LHS: " + man.render(description));
+        if (showSuperClasses) {
+        	System.out.println("LHS: " + man.render(description));
         	System.out.println();
         	System.out.println("Ranking: ");
         	System.out.println(ranking);
-        	System.out.println();*/
+        	System.out.println();
         	DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(owlEditorKit.getModelManager().getOWLReasonerManager().getCurrentReasonerFactory().getReasonerFactory(), ranking);
         	OWLClassExpression cc = dic.getCCompatibility(description, algorithm, ranking);
         	dic.computeSuperClasses(description, cc, ranking.getInfiniteRank());
         	final List<OWLClass> results1 = new ArrayList<OWLClass>(dic.getSuperClassesStrict());
         	final List<OWLClass> results2 = new ArrayList<OWLClass>(dic.getSuperClassesTypical());
+        	
+        	int newSize1 = 0;
         	if (results1.size() > 0){
-        		data.add(new DIPQueryResultsSection("Strict super classes (" + results1.size() + ")"));
         		for (OWLClass superClass : results1) {
-        			data.add(new DIPQueryResultsSectionItem(superClass, factory.getOWLSubClassOfAxiom(description, superClass)));
-        		}
-        	}
-        	if (results2.size() > 0){
-        		data.add(new DIPQueryResultsSection("Typical super classes (" + results2.size() + ")"));
-        		for (OWLClass superClass : results2) {
-        			data.add(new DIPQueryResultsSectionItem(superClass, factory.getOWLSubClassOfAxiom(description, superClass)));
+        			if (!superClass.isOWLThing()){
+        				newSize1++;
+        			}
         		}
         	}
         	
-        //}
+        	int newSize2 = 0;
+        	if (results2.size() > 0){
+        		for (OWLClass superClass : results2) {
+        			if (!superClass.isOWLThing()){
+        				newSize2++;
+        			}
+        		}
+        	}
+        	
+        	if (newSize1 > 0){
+        		data.add(new DIPQueryResultsSection("Strict super classes (" + newSize1 + ")"));
+        		for (OWLClass superClass : results1) {
+        			if (!superClass.isOWLThing()){
+        				data.add(new DIPQueryResultsSectionItem(superClass, factory.getOWLSubClassOfAxiom(description, superClass)));
+        			}
+        		}
+        	}
+        	
+        	if (newSize2 > 0){
+        		data.add(new DIPQueryResultsSection("Typical super classes (" + newSize2 + ")"));
+        		for (OWLClass superClass : results2) {
+        			if (!superClass.isOWLThing()){
+        				data.add(new DIPQueryResultsSectionItem(superClass, factory.getOWLSubClassOfAxiom(description, superClass)));
+        			}
+        		}
+        	}
+        	
+        }
        // if (showSubClasses) {
             // flatten and filter out owl:Nothing
             /*OWLClass owlNothing = owlEditorKit.getOWLModelManager().getOWLDataFactory().getOWLNothing();

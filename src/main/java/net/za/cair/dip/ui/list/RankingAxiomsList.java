@@ -81,7 +81,7 @@ public class RankingAxiomsList extends MList {
     }
     
     @SuppressWarnings({ })
-	public void displayAxiomRanking(Ranking ranking, OWLAxiom query, ReasoningType type, boolean defeasible){
+	public void displayAxiomRanking(Ranking ranking, OWLClassExpression query, ReasoningType type, boolean defeasible){
     	data = new ArrayList<Object>();
     	data.add(new RankingAxiomsListSection(type.getName()));
     	if (defeasible){

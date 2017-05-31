@@ -20,7 +20,6 @@ import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
-import net.za.cair.dip.ui.renderer.IndividualsRenderer;
 import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
 
 import org.protege.editor.core.ui.list.MList;

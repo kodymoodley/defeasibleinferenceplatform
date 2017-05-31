@@ -1,6 +1,7 @@
 package net.za.cair.dip.util;
 
 import org.semanticweb.owlapi.io.OWLObjectRenderer;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxObjectRenderer;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.util.ShortFormProvider;
 import org.semanticweb.owlapi.util.SimpleShortFormProvider;
@@ -56,7 +57,7 @@ public class ManchesterOWLSyntaxOWLObjectRendererImpl implements OWLObjectRender
 
     public String render(OWLObject object) {
         writerDelegate.reset();
-        ren.setUseWrapping(false);
+        //ren.setUseWrapping(false);
         object.accept(ren);
         
         return writerDelegate.toString();

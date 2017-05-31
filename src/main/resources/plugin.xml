@@ -1,13 +1,28 @@
-<?xml version="1.0" ?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?eclipse version="3.0"?>
 
 <plugin>
-   <extension id="ClassAxiomQueryViewComponent"
+
+	<!-- Tabs -->
+	
+	<extension id="DIPTab" point="org.protege.editor.core.application.WorkspaceTab">
+		<label value="DIP"/>
+		<class value="org.protege.editor.owl.ui.OWLWorkspaceViewsTab"/>
+		<index value="G"/>
+		<editorKitId value="OWLEditorKit"/>
+		<defaultViewConfigFileName value="viewconfig-dip.xml"/>
+   </extension>
+
+	<!-- View -->
+	
+	<extension id="ClassAxiomQueryViewComponent"
       point="org.protege.editor.core.application.ViewComponent">
       <label value="DIP"/>
       <class value="net.za.cair.dip.ui.view.OWLClassExpressionEditorViewComponent"/>
       <headerColor value="CC3366"/>
       <category value="DIP"/>      
    </extension> 
+   
    <extension id="DefeasibleAxiomsViewComponent"
       point="org.protege.editor.core.application.ViewComponent">
       <label value="Defeasible Axioms"/>
@@ -15,6 +30,7 @@
       <headerColor value="CC3366"/>
       <category value="DIP"/>      
    </extension>
+   
    <extension id="StrictAxiomsViewComponent"
       point="org.protege.editor.core.application.ViewComponent">
       <label value="Strict Axioms"/>
@@ -22,12 +38,5 @@
       <headerColor value="CC3366"/>
       <category value="DIP"/>      
    </extension>
-   <extension id="DIPTab"
-      point="org.protege.editor.core.application.WorkspaceTab">
-      <label value="DIP"/>
-      <class value="org.protege.editor.owl.ui.OWLWorkspaceViewsTab"/>      
-      <index value="G"/>      
-      <editorKitId value="OWLEditorKit"/>
-      <defaultViewConfigFileName value="viewconfig-dip.xml"/>      
-   </extension>
+	
 </plugin>
