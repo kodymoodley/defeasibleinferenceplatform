@@ -21,6 +21,13 @@ Steps:
 
 #### Installation
 
+Requirements:
+
++ Protégé 5
++ Java 1.8
+
+Steps:
+
 1. Copy net.za.cair.dip-${version}.jar to the "plugins" subdirectory of your Protégé 5 distribution.
 
 2. Backup protege-editor-owl.jar from the "bundles" subdirectory of your Protégé 5 distribution.
@@ -32,3 +39,7 @@ Steps:
 + Enable DIP tab via the Window | Tabs menu.
 + To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
 + Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
+
+#### License
+
+[GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html)
