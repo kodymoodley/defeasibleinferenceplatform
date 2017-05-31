@@ -1,1 +1,14 @@
-/bin/
+# Maven
+target/
+
+# Eclipse
+.classpath
+.project
+.settings/
+META-INF/
+
+*.iml
+
+pom.xml.releaseBackup
+release.properties
+pom.xml.versionsBackup
