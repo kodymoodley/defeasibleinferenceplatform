@@ -11,7 +11,7 @@ Requirements:
 
 Steps:
 
-1. Get a copy of the example code:
+1. Get a copy of the code:
 
         git clone https://github.com/kodymoodley/defeasibleinferenceplatform.git
     
