@@ -8,41 +8,30 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
-
 import java.lang.management.ManagementFactory;
-
 import net.za.cair.dip.DefeasibleInferenceComputer;
 import net.za.cair.dip.DefeasibleInferenceHelperClass;
 import net.za.cair.dip.model.OntologyStructure;
-import net.za.cair.dip.model.Query;
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
 import net.za.cair.dip.transform.RationalRankingAlgorithm;
-import net.za.cair.dip.ui.list.RankingAxiomsList;
 import net.za.cair.dip.util.Utility;
 
 import org.protege.editor.core.ui.util.ComponentFactory;
 import org.protege.editor.core.ui.util.InputVerificationStatusChangedListener;
 import org.protege.editor.owl.model.classexpression.OWLExpressionParserException;
 import org.protege.editor.owl.ui.clsdescriptioneditor.ExpressionEditor;
-import org.protege.editor.owl.ui.clsdescriptioneditor.OWLClassAxiomEditor;
 import org.protege.editor.owl.ui.clsdescriptioneditor.OWLExpressionChecker;
-import org.protege.editor.owl.ui.editor.OWLClassExpressionEditor;
-import org.protege.editor.owl.ui.editor.OWLClassExpressionExpressionEditor;
 import org.protege.editor.owl.ui.view.AbstractOWLViewComponent;
-import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 /*

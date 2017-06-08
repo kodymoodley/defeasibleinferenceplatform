@@ -19,6 +19,7 @@ import net.za.cair.dip.model.ReasoningType;
 import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
+
 import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 
 import org.protege.editor.core.ui.list.MList;

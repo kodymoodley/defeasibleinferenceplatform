@@ -29,15 +29,6 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
-import net.za.cair.dip.model.Rank;
-import net.za.cair.dip.model.Ranking;
-import net.za.cair.dip.model.ReasoningType;
-import net.za.cair.dip.transform.RationalRankingAlgorithm;
-import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
-import net.za.cair.dip.util.Utility;
-
-
-
 //import org.apache.log4j.Logger;
 import org.protege.editor.core.ui.util.ComponentFactory;
 import org.protege.editor.core.ui.util.InputVerificationStatusChangedListener;
@@ -66,6 +57,12 @@ import org.semanticweb.owlapi.model.OWLOntologyChangeListener;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
+import net.za.cair.dip.model.Rank;
+import net.za.cair.dip.model.Ranking;
+import net.za.cair.dip.model.ReasoningType;
+import net.za.cair.dip.transform.RationalRankingAlgorithm;
+import net.za.cair.dip.util.Utility;
+
 /**
  * Author: Kody Moodley<br>
  * Centre for Artificial Intelligence Research (CAIR)<br>
@@ -80,33 +77,19 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
     //Logger log = Logger.getLogger(OWLClassExpressionEditorViewComponent.class);
 
     private ExpressionEditor<OWLClassExpression> owlDescriptionEditor;
-
     private ResultsList resultsList;
     private ExceptionsList exceptionsList;
-
-
     //private JCheckBox showSuperClassesCheckBox;
-    
     private JComboBox reasoningList; 
-    
     //private JComboBox roleList; 
-
     //private JCheckBox showSubClassesCheckBox;
-
     private JButton executeButton;
     private JButton refreshButton;
     //private JButton addButton;
-    
     private OWLOntologyChangeListener ontListener;
-
     //private OWLModelManagerListener listener;
-
     //private boolean requiresRefresh = false;
-    
     private Ranking ranking;
-    
-    private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-	
     
     protected void initialiseOWLView() throws Exception {
         setLayout(new BorderLayout(10, 10));
@@ -456,7 +439,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
                 if (desc != null){
                     OWLExpressionUserCache.getInstance(getOWLModelManager()).add(desc, owlDescriptionEditor.getText());
                     ReasoningType algorithm = ReasoningType.NAME_TYPE_MAP.get((String)reasoningList.getSelectedItem());
-                    resultsList.setOWLClassExpression(desc, algorithm, ranking);
+                    resultsList.setOWLClassExpression(desc, algorithm, ranking);//.setOWLClassExpression(desc, algorithm, ranking);
                 }
             }
             catch (OWLException e) {

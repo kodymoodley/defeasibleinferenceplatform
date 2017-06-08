@@ -6,6 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.paukov.combinatorics.Factory;
+import org.paukov.combinatorics.Generator;
+import org.paukov.combinatorics.ICombinatoricsVector;
+import org.semanticweb.owl.explanation.api.Explanation;
+import org.semanticweb.owl.explanation.api.ExplanationGenerator;
+import org.semanticweb.owl.explanation.api.ExplanationGeneratorFactory;
+import org.semanticweb.owl.explanation.api.ExplanationManager;
 //import org.paukov.combinatorics.Factory;
 //import org.paukov.combinatorics.Generator;
 //import org.paukov.combinatorics.ICombinatoricsVector;
@@ -181,6 +188,88 @@ public class DefeasibleInferenceHelperClass {
 		}
 		
 		return lowest;
+	}
+	
+	public OWLClassExpression getLexicallyAdditiveConcept(List<Rank> compat, ArrayList<OWLAxiom> rank, OWLClassExpression subcls) throws OWLOntologyCreationException{
+		OWLDataFactory dataF = OWLManager.createOWLOntologyManager().getOWLDataFactory();
+		
+		/** Compute the Lexically Additive Concept */
+		
+		//Initialise stuff
+		ArrayList<OWLAxiom> problematicRank = new ArrayList<OWLAxiom>();
+		for (OWLAxiom a: rank){
+			problematicRank.add(a);
+		}
+		
+		ArrayList<Rank> cCompatibleSubset = new ArrayList<Rank>();
+		for (Rank r: compat){
+			ArrayList<OWLAxiom> rankAxioms = new ArrayList<OWLAxiom>();
+			for (OWLAxiom a: r.getAxioms()){
+				rankAxioms.add(a);
+			}
+			Rank tmp = new Rank(rankAxioms);
+			cCompatibleSubset.add(tmp);
+		}
+		
+		// Internalisation of compatible rank and lexicalisation of problematic rank
+		OWLClassExpression cCompatibleConcept = getInternalisation(cCompatibleSubset);
+		//Set<ArrayList<OWLAxiom>> lexicalisationPRank = getLexicalisation(problematicRank);
+		
+		// Initialise k
+		
+		int k = problematicRank.size() - 1;
+		//ArrayList<OWLAxiom> prr = new ArrayList<OWLAxiom>();
+		//if (k > 100){
+		//	k = 100;
+			
+		//	Iterator<OWLAxiom> iter = problematicRank.iterator();
+		////	while (prr.size() < k+1){
+		//		prr.add(iter.next());
+		//	}
+		//}
+		
+		// Compute candidate LAC (all ways of keeping k axioms)
+		//System.out.print("All ways of keeping " + k + "...");
+		OWLClassExpression candidateLAC = getCandidateLAC(problematicRank, k);
+		//OWLClassExpression candidateLAC = getCandidateLAC(prr, k);
+		
+		//System.out.println("done!");
+		OWLClassExpression candidateConcept = dataF.getOWLObjectIntersectionOf(cCompatibleConcept, candidateLAC);
+		
+		while (antecedentExceptional(subcls, candidateConcept, ranking.getInfiniteRank().getAxiomsAsSet())){
+			k--;
+			
+			if (k == 0)	// Can't keep any axioms from the problematic rank
+				return dataF.getOWLThing();
+			
+			//System.out.print("All ways of keeping " + k + "...");
+			candidateLAC = getCandidateLAC(problematicRank, k);
+			//candidateLAC = getCandidateLAC(prr, k);
+			
+			//System.out.println("done!");
+			candidateConcept = dataF.getOWLObjectIntersectionOf(cCompatibleConcept, candidateLAC);
+		}
+		//System.out.println("We can keep " + k + " axioms.");
+		keptAxiomsFromPRank = k;
+		
+		//System.out.println("LAC: " + renderer.render(candidateLAC));
+		return candidateLAC;
+	}
+	
+	private OWLClassExpression getCandidateLAC(ArrayList<OWLAxiom> pRank, int k){
+		OWLDataFactory dataF = OWLManager.createOWLOntologyManager().getOWLDataFactory();
+		ArrayList<OWLAxiom> tmpArr = new ArrayList<OWLAxiom>();tmpArr.addAll(pRank);
+		//Set<ArrayList<OWLAxiom>> result = new HashSet<ArrayList<OWLAxiom>>();
+		ICombinatoricsVector<OWLAxiom> initialArrayList = Factory.createVector(tmpArr);
+	    Generator<OWLAxiom> gen =  Factory.createSimpleCombinationGenerator(initialArrayList, k);//(initialArrayList);
+	   
+	    Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
+	    for (ICombinatoricsVector<OWLAxiom> combination : gen) {
+	    	OWLClassExpression tmp = getInternalisation(new HashSet<OWLAxiom>(combination.getVector()));
+	    	disjuncts.add(tmp);
+	    }
+	    
+	    return dataF.getOWLObjectUnionOf(disjuncts);	
 	}
 	
 	public ArrayList<Rank> getMRCCompatibleSubset(ArrayList<Rank> ranksVar, Query originalQuery, OWLSubClassOfAxiom modifiedQuery, Set<OWLAxiom> cbasis) throws OWLOntologyCreationException{
@@ -633,11 +722,227 @@ public class DefeasibleInferenceHelperClass {
 		return reasoner.isEntailed(query);
 	}
 	
+	public Set<OWLAxiom> getCBasis(OWLSubClassOfAxiom axiom) throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
+		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		
+		// Create an actual explanation generator for our ontology using the factory
+		ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);
+
+		OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLObjectComplementOf(axiom.getSubClass()));
+		
+		// Get explanations for exceptionality
+		Set<Explanation<OWLAxiom>> expl = gen.getExplanations(entailment);
+		
+		/*** Log some stuff ***/
+		noOfJusts = expl.size();
+		/**********************/
+		
+		// CBasis is the union of all justifications
+		double totalAxioms = 0.0;
+		Set<OWLAxiom> result = new HashSet<OWLAxiom>();
+		for (Explanation<OWLAxiom> exp: expl){
+			result.addAll(exp.getAxioms());
+			totalAxioms += exp.getAxioms().size();
+		}
+		
+		/*** Log some stuff ***/
+		avgSizeOfAJust = totalAxioms/expl.size();
+		cbasisSize = result.size();
+		/**********************/
+		
+		
+		// Filter out the TBox axioms
+		result.removeAll(ranking.getInfiniteRank().getAxiomsAsSet());
+				
+		// Check validity of MinCBasis
+		if (!result.isEmpty())
+			cBasisValid = true;
+		
+		// Return CBasis
+		return result;
+	}
+	
+	public Set<OWLAxiom> getCBasis(OWLClassExpression cls) throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
+		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		
+		// Create an actual explanation generator for our ontology using the factory
+		ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);
+
+		OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLObjectComplementOf(cls));
+		
+		// Get explanations for exceptionality
+		Set<Explanation<OWLAxiom>> expl = gen.getExplanations(entailment);
+		
+		/*** Log some stuff ***/
+		noOfJusts = expl.size();
+		/**********************/
+		
+		// CBasis is the union of all justifications
+		double totalAxioms = 0.0;
+		Set<OWLAxiom> result = new HashSet<OWLAxiom>();
+		for (Explanation<OWLAxiom> exp: expl){
+			result.addAll(exp.getAxioms());
+			totalAxioms += exp.getAxioms().size();
+		}
+		
+		/*** Log some stuff ***/
+		avgSizeOfAJust = totalAxioms/expl.size();
+		cbasisSize = result.size();
+		/**********************/
+		
+		
+		// Filter out the TBox axioms
+		result.removeAll(ranking.getInfiniteRank().getAxiomsAsSet());
+				
+		// Check validity of MinCBasis
+		if (!result.isEmpty())
+			cBasisValid = true;
+		
+		// Return CBasis
+		return result;
+	}
+	
+	public Set<OWLAxiom> getMinCBasis(OWLClassExpression cls) throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
+		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		
+		// Create an actual explanation generator for our ontology using the factory
+		ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);	
+		// Transform input axiom into exceptionality axiom
+		OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLObjectComplementOf(cls));
+		//Set<Explanation<OWLAxiom>> expl = null;
+		Set<OWLAxiom> result = new HashSet<OWLAxiom>(); //mincbasis
+		Set<OWLAxiom> result2 = new HashSet<OWLAxiom>(); //cbasis
+	
+		// Get explanations for exceptionality
+		Set<Explanation<OWLAxiom>> expl = null;
+		expl = gen.getExplanations(entailment);
+		//hsTreeSize = gen.getHST().getTreeSize();
+		//justsEntailmentChecks = gen.getEntailmentChecks();
+		
+		/*** Log some stuff ***/
+		noOfJusts = expl.size();
+		/**********************/
+		
+		// MinCBasis is the union of all the minimally ranked
+		// axioms in each justification.
+		double totalAxioms = 0.0;
+		
+		for (Explanation<OWLAxiom> exp: expl){
+			Set<OWLAxiom> tmp = new HashSet<OWLAxiom>();
+			tmp.addAll(exp.getAxioms());
+			result.addAll(getMinimallyRanked(tmp));
+			result2.addAll(tmp);
+			totalAxioms += exp.getAxioms().size();
+		}
+		
+		/*** Log some stuff ***/
+		if (noOfJusts > 0)
+			avgSizeOfAJust = totalAxioms/expl.size();
+		else
+			avgSizeOfAJust = 0;
+		
+		mincbasisSize = result.size();
+		cbasisSize = result2.size();
+		//System.out.println(cbasisSize);
+		cbasis = new HashSet<OWLAxiom>();
+		cbasis.addAll(result2);
+		/**********************/
+		
+		// Filter out the TBox axioms
+		result.removeAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		
+		// Check validity of MinCBasis
+		if (!result.isEmpty())
+			cBasisValid = true;
+		
+		// Return MinCBasis
+		return result;
+	}
+	
+	public Set<OWLAxiom> getMinCBasis(OWLSubClassOfAxiom axiom) throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
+		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		
+		// Create an actual explanation generator for our ontology using the factory
+		ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);	
+		// Transform input axiom into exceptionality axiom
+		OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLObjectComplementOf(axiom.getSubClass()));
+		//Set<Explanation<OWLAxiom>> expl = null;
+		Set<OWLAxiom> result = new HashSet<OWLAxiom>(); //mincbasis
+		Set<OWLAxiom> result2 = new HashSet<OWLAxiom>(); //cbasis
+	
+		// Get explanations for exceptionality
+		Set<Explanation<OWLAxiom>> expl = null;
+		expl = gen.getExplanations(entailment);
+		//hsTreeSize = gen.getHST().getTreeSize();
+		//justsEntailmentChecks = gen.getEntailmentChecks();
+		
+		/*** Log some stuff ***/
+		noOfJusts = expl.size();
+		/**********************/
+		
+		// MinCBasis is the union of all the minimally ranked
+		// axioms in each justification.
+		double totalAxioms = 0.0;
+		
+		for (Explanation<OWLAxiom> exp: expl){
+			Set<OWLAxiom> tmp = new HashSet<OWLAxiom>();
+			tmp.addAll(exp.getAxioms());
+			result.addAll(getMinimallyRanked(tmp));
+			result2.addAll(tmp);
+			totalAxioms += exp.getAxioms().size();
+		}
+		
+		/*** Log some stuff ***/
+		if (noOfJusts > 0)
+			avgSizeOfAJust = totalAxioms/expl.size();
+		else
+			avgSizeOfAJust = 0;
+		
+		mincbasisSize = result.size();
+		cbasisSize = result2.size();
+		//System.out.println(cbasisSize);
+		cbasis = new HashSet<OWLAxiom>();
+		cbasis.addAll(result2);
+		/**********************/
+		
+		// Filter out the TBox axioms
+		result.removeAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		
+		// Check validity of MinCBasis
+		if (!result.isEmpty())
+			cBasisValid = true;
+		
+		// Return MinCBasis
+		return result;
+	}
+	
 	public boolean isCBasisValid(){
 		return cBasisValid;
 	}
-	
-	
 	
 	public ArrayList<OWLAxiom> getProblematicRank(){
 		return problematicRank;

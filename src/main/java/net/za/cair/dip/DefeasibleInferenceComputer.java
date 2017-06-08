@@ -1,12 +1,10 @@
 package net.za.cair.dip;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.ArrayList;
 
-import org.protege.editor.owl.ui.OWLClassExpressionComparator;
 //import org.semanticweb.owl.explanation.impl.blackbox.hst.HittingSetTree;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -21,13 +19,12 @@ import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
-import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
-import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 import net.za.cair.dip.model.Query;
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
-import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
+import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
+import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 /*
  * Copyright (C) 2011, Centre for Artificial Intelligence Research
@@ -105,7 +102,6 @@ public class DefeasibleInferenceComputer {
 	public int hsTreeSize = 0;
 	public boolean rcResult;
 	public boolean lcResult;
-	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 
 	private OWLDataFactory df;
 	private DefeasibleInferenceHelperClass helperClass;
@@ -440,6 +436,106 @@ public class DefeasibleInferenceComputer {
 			return false;
 		}
 	}
+	
+	private boolean executeLexicographicClosure(Query originalQuery, OWLSubClassOfAxiom modifiedQuery, Set<OWLAxiom> minCBasis, Ranking ranking) throws OWLOntologyCreationException{
+		entailmentChecksLC = 0;
+		helperClass.resetEntChecks();
+		/**** Background Knowledge <T> */
+		Set<OWLAxiom> backgroundKnwldge = new HashSet<OWLAxiom>();
+		backgroundKnwldge.addAll(ranking.getInfiniteRank().getAxioms());		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(backgroundKnwldge);	
+		OWLReasoner reasoner = reasonerFactory.createReasoner(tmpOntology);
+		
+		/** Ranks in the ranking <D> */
+		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
+		
+		/*** If strict query **/
+		if ((!originalQuery.defeasible)){
+			OWLSubClassOfAxiom finalQuery = OWLManager.getOWLDataFactory().getOWLSubClassOfAxiom(modifiedQuery.getSubClass(), modifiedQuery.getSuperClass());
+			entailmentChecksLC++;
+			return reasoner.isEntailed(finalQuery);
+		}
+		
+		/*** Reverse ranking order ****/
+		int n = ranks.size();
+	    for (int i = 0; i <= Math.floor((n-2)/2);i++){
+	         Rank tmp = ranks.get(i);
+	         ranks.set(i, ranks.get(n - 1 - i));
+	         ranks.set(n - 1 - i, tmp);
+		}
+	    
+	    /** Calculate C-compatible subset of the ranking */ 
+	    ArrayList<Rank> cCompatibleRanks = helperClass.getCCompatibleSubset(ranks, originalQuery, modifiedQuery);
+	    entailmentChecksLC += helperClass.entailmentChecks;
+	    /********************** Log some stuff *********************/
+	    ccompat = new ArrayList<Rank>();
+	    ccompat.addAll(helperClass.ccompat);
+	    noOfRanksInCCompatLR = helperClass.sizeOfCCompat;
+		axiomsInCCompatLR = helperClass.noOfAxiomsInCCompat;
+		queryHasInfiniteRank = helperClass.antecedentHasInfiniteRank;
+		queryIsNonExceptional = helperClass.antecedentIsNonExceptional;
+		/***********************************************************/
+		
+	    // If we have a min CBasis to optimise the computation
+	    OWLClassExpression irrelevantKnowledgeConcept = null;
+	    ArrayList<OWLAxiom> newProblematicRank = new ArrayList<OWLAxiom>();
+	    newProblematicRank.addAll(helperClass.getProblematicRank());
+	    pRank = new ArrayList<OWLAxiom>();
+	    pRank.addAll(helperClass.getProblematicRank());
+	    
+	    //System.out.println("problematic rank size: " + newProblematicRank.size());
+		
+	    if (minCBasis.isEmpty()){// Unoptimised
+			irrelevantKnowledgeConcept = df.getOWLThing();
+		}
+		else{					 // Optimised
+		    Set<OWLAxiom> irr = new HashSet<OWLAxiom>();
+			irr.addAll(helperClass.getProblematicRank());
+			irr.removeAll(minCBasis);
+			
+			axiomsInCCompatLR += irr.size(); //For lexically relevant closure
+			
+			irrelevantKnowledgeConcept = helperClass.getInternalisation(irr);
+			newProblematicRank.retainAll(minCBasis);
+		}
+	    
+	    /**Antecedent of query is totally exceptional. Entailment test against Tbox**/
+		if (cCompatibleRanks.size() == 0){
+			entailmentChecksLC++; 
+			return reasoner.isEntailed(modifiedQuery);
+		}
+		else{
+			// Rank of antecedent is not infinite
+			OWLClassExpression ranksInternalisation = df.getOWLObjectIntersectionOf(irrelevantKnowledgeConcept, helperClass.getInternalisation(cCompatibleRanks)); // Internalisation of the compatible ranks
+			OWLClassExpression lhs = null;
+			OWLClassExpression rhs = modifiedQuery.getSuperClass();
+			
+			if (cCompatibleRanks.size() == ranking.size() || (newProblematicRank.size() == 1)){
+				// Either the antecedent of the query is not exceptional or the problematic rank has only one axiom.
+				// In either case, we do not need to compute a LAC.
+						
+				lhs = df.getOWLObjectIntersectionOf(ranksInternalisation, modifiedQuery.getSubClass());				
+			}
+			else{
+				// Core case, we need to compute a LAC
+				// Compute lexically additive concept
+				helperClass.resetEntChecks();
+				OWLClassExpression lac = helperClass.getLexicallyAdditiveConcept(cCompatibleRanks, newProblematicRank, modifiedQuery.getSubClass());
+				entailmentChecksLC += helperClass.entailmentChecks;
+				/************ Log num of conjuncts in each disjunct of LAC *******************/
+				noOfAxiomsKeptFromProblematicRank = helperClass.keptAxiomsFromPRank;
+				axiomsInCCompatLR += noOfAxiomsKeptFromProblematicRank;
+				/*****************************************************************************/
+				lhs = df.getOWLObjectIntersectionOf(ranksInternalisation, modifiedQuery.getSubClass(), lac);
+			}
+			
+			// Perform entailment check
+			OWLSubClassOfAxiom query = df.getOWLSubClassOfAxiom(lhs, rhs);
+			entailmentChecksLC++;
+			return reasoner.isEntailed(query);
+		}
+	}
 		
 	private boolean executeRationalClosure(Query originalQuery, OWLSubClassOfAxiom modifiedQuery, Ranking ranking) throws OWLOntologyCreationException{
 		entailmentChecksRC = 0;
@@ -541,9 +637,7 @@ public class DefeasibleInferenceComputer {
 	}
 	
 	public OWLClassExpression getCCompatibility(OWLClassExpression cls, ReasoningType algorithm, Ranking ranking) throws OWLOntologyCreationException{		
-		//System.out.print("Getting CCompatibility...");
-		ArrayList<Rank> cCompatibleRanks = new ArrayList<Rank>();
-	
+		ArrayList<Rank> cCompatibleRanks = new ArrayList<Rank>();	
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
 		
 		/*** Reverse ranking order ****/
@@ -553,37 +647,57 @@ public class DefeasibleInferenceComputer {
 		   ranks.set(i, ranks.get(n - 1 - i));
 		   ranks.set(n - 1 - i, tmp);
 		}
-		   
-		
+		   		
 		/** Calculate C-compatible subset of the ranking */ 
 		/** Don't think this should be calculated for the relevant closures... */
 		if (!algorithm.equals(ReasoningType.RELEVANT) && !algorithm.equals(ReasoningType.MIN_RELEVANT)){
 			try {
 				cCompatibleRanks = helperClass.getCCompatibleSubset(ranks, cls);
-				int level = 0;
-				//System.out.println();
-				/*for (Rank r: cCompatibleRanks){
-					System.out.println("Level " + level + ":");
-					for (OWLAxiom a: r.getAxioms()){
-						System.out.println(man.render(a));
-					}
-					System.out.println();
-					level++;
-				}
-				System.out.println();*/
 			} catch (OWLOntologyCreationException e) {
 				System.out.println("Error identifying C-compatibility.");
 				e.printStackTrace();
 			}
-		}			
-
-		System.out.println();
-		System.out.println("Rational Closure");
-		System.out.println();
-		//System.out.println("done.");
-		//System.out.println();
-		return helperClass.getInternalisation(cCompatibleRanks);
-	 
+		}
 		
+		if (algorithm.equals(ReasoningType.LEXICOGRAPHIC)){
+			System.out.println();
+			System.out.println("Lexicographic Closure");
+			System.out.println();
+			ArrayList<OWLAxiom> newProblematicRank = new ArrayList<OWLAxiom>();
+			newProblematicRank.addAll(helperClass.getProblematicRank());
+
+			pRank = new ArrayList<OWLAxiom>();
+			pRank.addAll(helperClass.getProblematicRank());
+			if (cCompatibleRanks.size() == ranking.size() || (newProblematicRank.size() == 1)){				
+				return helperClass.getInternalisation(cCompatibleRanks);				
+			}
+			else{
+				OWLClassExpression lac = helperClass.getLexicallyAdditiveConcept(cCompatibleRanks, newProblematicRank, cls);
+				return df.getOWLObjectIntersectionOf(helperClass.getInternalisation(cCompatibleRanks), lac);
+			}
+		}
+		else if (algorithm.equals(ReasoningType.RELEVANT)){
+			System.out.println();
+			System.out.println("Basic Relevant Closure");
+			System.out.println();
+			Set<OWLAxiom> cbasis = helperClass.getCBasis(cls);
+			ArrayList<Rank> mrCCompatibleRanks = helperClass.getMRCCompatibleSubset(ranks, cls, cbasis);	
+			return helperClass.getInternalisation(mrCCompatibleRanks);
+		}
+		else if (algorithm.equals(ReasoningType.MIN_RELEVANT)){
+			System.out.println();
+			System.out.println("Minimal Relevant Closure");
+			System.out.println();
+			Set<OWLAxiom> cbasis = helperClass.getMinCBasis(cls);			 
+			ArrayList<Rank> mrCCompatibleRanks = helperClass.getMRCCompatibleSubset(ranks, cls, cbasis);			
+			return helperClass.getInternalisation(mrCCompatibleRanks);
+		}
+		else {
+			System.out.println();
+			System.out.println("Rational Closure");
+			System.out.println();
+
+			return helperClass.getInternalisation(cCompatibleRanks);
+		}	 	
 	}
 }
