@@ -39,6 +39,8 @@ Steps:
 + Enable DIP tab via the Window | Tabs menu.
 + To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
 + Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
++ We strongly recommend to use DIP in conjunction with the [HermiT](http://www.hermit-reasoner.com/) Protégé plugin for accurate results. 
++ **Note:** Theoretically, DIP can be used with any sound and complete reasoning implementation, but in practice reasoners differ in how they implement the OWLReasoner interface. For e.g., some reasoners will not update their inferences after an ontology changes unless the classify method is invoked explicitly. HermiT does not have this issue.
 
 #### License
 
