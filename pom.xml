@@ -20,7 +20,16 @@
             <artifactId>protege-editor-owl</artifactId>
 			<version>5.0.0</version>
         </dependency>
-
+        <dependency>
+    		<groupId>com.github.dpaukov</groupId>
+    		<artifactId>combinatoricslib3</artifactId>
+    		<version>3.2.0</version>
+		</dependency>
+		<dependency>
+    		<groupId>net.sourceforge.owlapi</groupId>
+    		<artifactId>owlexplanation</artifactId>
+    		<version>2.0.0</version>
+		</dependency>
 	</dependencies>
 	
 

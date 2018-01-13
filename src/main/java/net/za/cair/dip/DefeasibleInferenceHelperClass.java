@@ -5,17 +5,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.paukov.combinatorics.Factory;
-import org.paukov.combinatorics.Generator;
-import org.paukov.combinatorics.ICombinatoricsVector;
+import org.paukov.combinatorics3.Generator;
 import org.semanticweb.owl.explanation.api.Explanation;
 import org.semanticweb.owl.explanation.api.ExplanationGenerator;
 import org.semanticweb.owl.explanation.api.ExplanationGeneratorFactory;
 import org.semanticweb.owl.explanation.api.ExplanationManager;
-//import org.paukov.combinatorics.Factory;
-//import org.paukov.combinatorics.Generator;
-//import org.paukov.combinatorics.ICombinatoricsVector;
 //import org.semanticweb.owl
 //import org.semanticweb.owl.explanation.api.Explanation;
 //import org.semanticweb.owl.explanation.api.ExplanationGenerator;
@@ -259,16 +253,18 @@ public class DefeasibleInferenceHelperClass {
 	private OWLClassExpression getCandidateLAC(ArrayList<OWLAxiom> pRank, int k){
 		OWLDataFactory dataF = OWLManager.createOWLOntologyManager().getOWLDataFactory();
 		ArrayList<OWLAxiom> tmpArr = new ArrayList<OWLAxiom>();tmpArr.addAll(pRank);
-		//Set<ArrayList<OWLAxiom>> result = new HashSet<ArrayList<OWLAxiom>>();
-		ICombinatoricsVector<OWLAxiom> initialArrayList = Factory.createVector(tmpArr);
-	    Generator<OWLAxiom> gen =  Factory.createSimpleCombinationGenerator(initialArrayList, k);//(initialArrayList);
-	   
-	    Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
-	    for (ICombinatoricsVector<OWLAxiom> combination : gen) {
-	    	OWLClassExpression tmp = getInternalisation(new HashSet<OWLAxiom>(combination.getVector()));
+		
+		Iterator<List<OWLAxiom>> streamAx = Generator.combination(tmpArr).simple(k).iterator();
+		
+		Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
+		while (streamAx.hasNext()) {
+			List<OWLAxiom> currCombination = streamAx.next();
+			Set<OWLAxiom> setCurrCombination = new HashSet<OWLAxiom>();
+			setCurrCombination.addAll(currCombination);
+	    	OWLClassExpression tmp = getInternalisation(setCurrCombination);
 	    	disjuncts.add(tmp);
-	    }
-	    
+		}
+		
 	    return dataF.getOWLObjectUnionOf(disjuncts);	
 	}
 	
