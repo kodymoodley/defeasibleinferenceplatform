@@ -41,16 +41,28 @@ public class DTransformFactory{
 
 	public DTransformFactory(ArrayList<ArrayList<OWLAxiom>> e){
 		this.eTransforms = e;
-		n = eTransforms.size() - 1;
+		//n = eTransforms.size() - 1;
+		n = eTransforms.size();
 	}			
 	
 	public ArrayList<ArrayList<OWLAxiom>> getDTransforms() throws OWLException{
-		if (n == 0){
+		// # of eTransforms (ranks) is 1
+		if (n == 1){
 			return eTransforms;
 		}
 		
+		// # of eTransforms >= 2
 		ArrayList<ArrayList<OWLAxiom>> result = new ArrayList<ArrayList<OWLAxiom>>();
-		ArrayList<OWLAxiom> d0 = eTransforms.get(n);
+		
+		// calculate the dTransforms
+		for (int i = 1; i < n;i++) {
+			ArrayList<OWLAxiom> currD = new ArrayList<OWLAxiom>();
+			currD = getSubtraction(eTransforms.get(i-1), eTransforms.get(i));
+			result.add(currD);
+		}
+		
+		/*ArrayList<OWLAxiom> d0 = getSubtraction(eTransforms.get(0), eTransforms.get(1));
+				//eTransforms.get(n);
 		result.add(0, d0);
 		
 		int i = 1;		
@@ -60,7 +72,8 @@ public class DTransformFactory{
 			currD = getSubtraction(eTransforms.get(n - i), eTransforms.get(n - i + 1));
 			result.add(i, currD);			
 			i++;
-		}
+		}*/
+		
 		return result;
 	}
 		

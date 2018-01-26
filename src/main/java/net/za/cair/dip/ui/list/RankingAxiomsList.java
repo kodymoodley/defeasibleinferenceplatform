@@ -11,7 +11,6 @@ import org.protege.editor.owl.OWLEditorKit;
 import org.protege.editor.owl.model.OWLModelManager;
 import org.semanticweb.owlapi.model.*;
 
-
 import java.awt.*;
 import java.util.*;
 import java.util.List;

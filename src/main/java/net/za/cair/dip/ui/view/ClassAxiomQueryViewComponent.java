@@ -24,7 +24,6 @@ import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
 import net.za.cair.dip.transform.RationalRankingAlgorithm;
 import net.za.cair.dip.util.Utility;
-
 import org.protege.editor.core.ui.util.ComponentFactory;
 import org.protege.editor.core.ui.util.InputVerificationStatusChangedListener;
 import org.protege.editor.owl.model.classexpression.OWLExpressionParserException;
@@ -68,7 +67,6 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     private static final long serialVersionUID = -4515710047558710080L;
     private JComponent resultsPanel, editorPanel;
     private OWLReasonerFactory reasonerFactory;
-    //public static final String[] reasoningTypes = ReasoningType.getReasoningTypes();
     public static OWLAnnotationProperty rampQueryProperty;
     private JPanel editorToolsPanel, clsExpressionCheckPanel;
     private ExpressionEditor<OWLClassExpression> classInclusionBox;
@@ -155,7 +153,7 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
    private OWLClassExpression getClassExpression() throws OWLException{
 	   OWLClassExpression clsEx = null;
 	   try {
-			clsEx = (OWLClassExpression)classInclusionBox.createObject();//.getExpressionChecker().createObject(classInclusionBox.getText());
+			clsEx = (OWLClassExpression)classInclusionBox.createObject();
 		} catch (OWLExpressionParserException e1) {
 			JOptionPane.showMessageDialog(this, "Invalid Class Expression");
 		}
@@ -243,10 +241,15 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
     
    /**
     * Executes the specified query in the query text box.
-    * @param axiom
+    * @param OWLClassExpression
     * @throws OWLException
     */
    private void executeQuery(OWLClassExpression clsEx) throws OWLException{
+	   //test
+	   System.out.println("look what im doing!!!");
+	   clsEx = getOWLModelManager().getOWLDataFactory().getOWLThing();
+	   System.out.println("look what I did!!!");
+	   //test
 	   /********** Preprocessing Stage ***********/
 	   OntologyStructure structure = new OntologyStructure(getOWLModelManager().getActiveOntology());
 	   ReasoningType algorithm = ReasoningType.NAME_TYPE_MAP.get((String)reasoningList.getSelectedItem());
@@ -254,7 +257,8 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
 	   Ranking ranking = rankingConstruction.computeRanking();
 	   Rank infiniteRank = rankingConstruction.getInfiniteRank();
 	   DefeasibleInferenceHelperClass dihc = new DefeasibleInferenceHelperClass(reasonerFactory, ranking);
-	   ArrayList<Rank> ccompatRanks =  dihc.getCCompatibleSubset(ranking.getRanking(), clsEx);
+//	   ArrayList<Rank> ccompatRanks =  dihc.getCCompatibleSubset(ranking.getRanking(), clsEx);
+	   ArrayList<Rank> ccompatRanks =  dihc.getCCompatibleSubset(ranking.getRanking(), getOWLModelManager().getOWLDataFactory().getOWLThing());	   
 	   OWLClassExpression ccompatConcept = dihc.getInternalisation(ccompatRanks);
 			   
 	   boolean defeasible = false;

@@ -157,12 +157,12 @@ public class DefeasibleInferenceHelperClass {
 	private int rank(OWLAxiom a){
 		ArrayList<Rank> ranks = new ArrayList<Rank>(ranking.getRanking());
 		/*** Reverse ranking order ****/
-		int n = ranks.size();
+		/*int n = ranks.size();
 	    for (int i = 0; i <= Math.floor((n-2)/2);i++){
 	         Rank tmp = ranks.get(i);
 	         ranks.set(i, ranks.get(n - 1 - i));
 	         ranks.set(n - 1 - i, tmp);
-		}
+		}*/
 	    
 		for (Rank r: ranks){
 			if (r.getAxioms().contains(a))
@@ -621,7 +621,10 @@ public class DefeasibleInferenceHelperClass {
 	private boolean antecedentExceptional(OWLClassExpression antec, ArrayList<Rank> ranks, Set<OWLAxiom> background) throws OWLOntologyCreationException{
 		/**** Background Knowledge <T> */
 		Set<OWLAxiom> backgroundKnwldge = new HashSet<OWLAxiom>();
-		backgroundKnwldge.addAll(background);		
+		for (OWLAxiom ax: background) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				backgroundKnwldge.add(ax);
+		}				
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = null;		
 		tmpOntology = ontologyManager.createOntology(backgroundKnwldge);
@@ -645,7 +648,10 @@ public class DefeasibleInferenceHelperClass {
 	private boolean antecedentExceptional(OWLClassExpression antec, OWLClassExpression ranksInternalisation, Set<OWLAxiom> background) throws OWLOntologyCreationException{
 		/**** Background Knowledge <T> */
 		Set<OWLAxiom> backgroundKnwldge = new HashSet<OWLAxiom>();
-		backgroundKnwldge.addAll(background);		
+		for (OWLAxiom ax: background) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				backgroundKnwldge.add(ax);
+		}			
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = null;
 		tmpOntology = ontologyManager.createOntology(backgroundKnwldge);
@@ -675,7 +681,10 @@ public class DefeasibleInferenceHelperClass {
 	public boolean isExceptional(OWLSubClassOfAxiom q, Ranking ranking) throws OWLOntologyCreationException{
 		/**** Background Knowledge <T> */
 		Set<OWLAxiom> backgroundKnwldge = new HashSet<OWLAxiom>();
-		backgroundKnwldge.addAll(ranking.getInfiniteRank().getAxioms());		
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				backgroundKnwldge.add(ax);
+		}				
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = null;		
 		tmpOntology = ontologyManager.createOntology(backgroundKnwldge);
@@ -698,7 +707,10 @@ public class DefeasibleInferenceHelperClass {
 	public boolean executeNonExceptionalQuery(OWLSubClassOfAxiom q, Ranking ranking) throws OWLOntologyCreationException{
 		/**** Background Knowledge <T> */
 		Set<OWLAxiom> backgroundKnwldge = new HashSet<OWLAxiom>();
-		backgroundKnwldge.addAll(ranking.getInfiniteRank().getAxioms());		
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				backgroundKnwldge.add(ax);
+		}		
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = null;		
 		tmpOntology = ontologyManager.createOntology(backgroundKnwldge);
@@ -724,7 +736,10 @@ public class DefeasibleInferenceHelperClass {
 		// Create an ontology holding all the axioms in our ranking
 		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
 		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
-		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				ontologyAxioms.add(ax);
+		}
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
 		
 		// Create an actual explanation generator for our ontology using the factory
@@ -770,7 +785,10 @@ public class DefeasibleInferenceHelperClass {
 		// Create an ontology holding all the axioms in our ranking
 		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
 		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
-		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				ontologyAxioms.add(ax);
+		}
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
 		
 		// Create an actual explanation generator for our ontology using the factory
@@ -816,7 +834,11 @@ public class DefeasibleInferenceHelperClass {
 		// Create an ontology holding all the axioms in our ranking
 		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
 		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
-		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				ontologyAxioms.add(ax);
+		}
+		
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
 		
 		// Create an actual explanation generator for our ontology using the factory
@@ -879,7 +901,10 @@ public class DefeasibleInferenceHelperClass {
 		// Create an ontology holding all the axioms in our ranking
 		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
 		ontologyAxioms.addAll(ranking.getAxiomsMinusInfiniteRank());
-		ontologyAxioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());
+		for (OWLAxiom ax: ranking.getInfiniteRank().getAxiomsAsSet()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				ontologyAxioms.add(ax);
+		}
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
 		
 		// Create an actual explanation generator for our ontology using the factory

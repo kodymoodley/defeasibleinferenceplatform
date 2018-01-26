@@ -165,15 +165,15 @@ public class Ranking implements Serializable{
 				result += man.render(axiom) + "\n";
 			result += "---------------------\n";
 		}
-		int size = this.ranking.size()-1;
+		//int size = this.ranking.size()-1;
 		for (Rank rank: this.ranking){
 			result += "---------------------\n";
-			result += "Level " + size + ":\n";
+			result += "Level " + rank.getIndex() + ":\n";
 			result += "---------------------\n";
 			for (OWLAxiom axiom: rank.getAxioms())
 				result += man.render(axiom) + "\n";
 			//result += "-------------\n";
-			size--;
+			//size--;
 		}
 		result += "\n";
 		return result;

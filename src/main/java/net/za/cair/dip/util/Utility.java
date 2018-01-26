@@ -1,28 +1,14 @@
 package net.za.cair.dip.util;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
-//import net.za.cair.dip.ui.IconCreator;
-
-
-
-
-
-
-import net.za.cair.dip.ui.IconCreator;
-
 import org.protege.editor.owl.model.OWLModelManager;
 import org.protege.editor.owl.model.classexpression.OWLExpressionParserException;
 import org.protege.editor.owl.ui.clsdescriptioneditor.OWLExpressionChecker;
@@ -76,37 +62,20 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 public class Utility {
 	private static OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 	private static IRI defeasibleIRI = IRI.create("http://cair.za.net/defeasible");
+	
 	private static IRI rampQueryIRI = IRI.create("http://www.cair.za.net/ontologyAnnotationProperties/rampQueries");
 	public static IRI rampSelectedQueryIRI = IRI.create("http://www.cair.za.net/ontologyAnnotationProperties/rampSelectedQuery");
 	
-	public static OWLAnnotationProperty defeasibleAnnotationProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(defeasibleIRI); // NO_UCD (use default)
+	public static OWLAnnotationProperty defeasibleAnnotationProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(defeasibleIRI); 
 	public static OWLAnnotationProperty rampQueryProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(rampQueryIRI);
 	public static OWLAnnotationProperty rampSelectedQueryProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(rampSelectedQueryIRI);
 	
+	private final IRI consistencyIRI = IRI.create("http://cair.za.net/consistent");
 	private final IRI rankIRI = IRI.create("http://www.cair.za.net/rank");
 	    
-	public final OWLAnnotationProperty rankAnnotationProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(rankIRI); // NO_UCD (use default)
-
-	//public final OWLAnnotation rankAnnotation = ontologyManager.getOWLDataFactory().getOWL // NO_UCD (use default)
+	public final OWLAnnotationProperty rankAnnotationProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(rankIRI); 
+	public final OWLAnnotationProperty consistencyAnnotationProperty = ontologyManager.getOWLDataFactory().getOWLAnnotationProperty(consistencyIRI); 
 	
-    private static String imagedir = "icons/";               
-    private static String imageCaption = "";        
-    private static String imageFileName = "yes.gif";
-    private static String imageFileName2 = "no.gif";
-    private static String imageFileName3 = "empty.png";    
-    private static String individual = "instance.gif";
-    private static IconCreator ic = new IconCreator();
-    private static Icon icon_tick = ic.createImageIcon(imagedir + imageFileName, imageCaption);
-    private static Icon icon_cross = ic.createImageIcon(imagedir + imageFileName2, imageCaption);
-    private static Icon icon_none = ic.createImageIcon(imagedir + imageFileName3, imageCaption);  
-    private static ImageIcon icon_ind = ic.createImageIcon(imagedir + individual, imageCaption);
-    private static ImageIcon icon_ind2 = ic.createImageIcon(imagedir + individual, imageCaption);
-    public static JLabel crossLabel = new JLabel(icon_cross);
-    public static JLabel tickLabel = new JLabel(icon_tick);
-    public static JLabel noneLabel = new JLabel(icon_none);
-    public static final JLabel indLabel = new JLabel(icon_ind);
-    public static final JLabel indLabel2 = new JLabel(icon_ind2);
-
     private String patternFreeString = "";
     private int startMatch = 0;
     private int endMatch = 0;
@@ -164,7 +133,11 @@ public class Utility {
 	   // return false;//!axiom.getAnnotations(defeasibleAnnotationProperty).isEmpty();	    
 	}
 	
-	public Ranking mergeRanks(ArrayList<Rank> ranks, int lowest, int highest){
+	public Ranking mergeRanks(ArrayList<Rank> nranks, int lowest, int highest){
+		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(nranks);
+		System.out.println("lowest: " + lowest + ", highest: " + highest);
+		System.out.println();
+	
 		ArrayList<Rank> result = new ArrayList<Rank>();
 		for (int i = lowest; i <= highest;i++){
 			ArrayList<OWLAxiom> axioms = new ArrayList<OWLAxiom>();
@@ -179,6 +152,40 @@ public class Utility {
 			result.add(new Rank(axioms, i));
 		}
 		
+	    System.out.println("--before--");
+	    System.out.println();
+	    
+		for (Rank r: result) {
+		    System.out.println(r.getIndex() + ":");
+		    for (OWLAxiom a: r.getAxioms()) {
+		    	System.out.println(man.render(a));
+		    }
+		}
+		
+		System.out.println();
+		
+		/*** Reverse ranking order ****/
+		/*int n = result.size();
+	    for (int i = 0; i <= Math.floor((n-2)/2);i++){
+	         Rank tmp = result.get(i+1);
+	         result.set(i+1, result.get(n - i));
+	         result.set(n - i, tmp);
+		}
+	    
+	    System.out.println("--after--");
+	    System.out.println();
+	    
+	    for (Rank r: result) {
+		    System.out.println(r.getIndex() + ":");
+		    for (OWLAxiom a: r.getAxioms()) {
+		    	System.out.println(man.render(a));
+		    }
+		}
+	    
+		System.out.println();*/
+		
+		
+	
 		return new Ranking(result);
 	}
 	

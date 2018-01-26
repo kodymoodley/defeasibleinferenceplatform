@@ -5,7 +5,6 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +20,7 @@ import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
 import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
+import net.za.cair.dip.util.Utility;
 
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
@@ -28,6 +28,7 @@ import org.protege.editor.owl.OWLEditorKit;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponent;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponentMediator;
 import org.protege.editor.owl.ui.view.Copyable;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLObject;
@@ -45,47 +46,46 @@ import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
  */
 public class ExceptionsList extends MList implements LinkedObjectComponent, Copyable {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 8184853513690586368L;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8184853513690586368L;
 
-    private OWLEditorKit owlEditorKit;
+	private OWLEditorKit owlEditorKit;
 
-    private LinkedObjectComponentMediator mediator;
+	private LinkedObjectComponentMediator mediator;
 
-    private List<ChangeListener> copyListeners = new ArrayList<ChangeListener>();
+	private List<ChangeListener> copyListeners = new ArrayList<ChangeListener>();
 
-    private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-	
-
-    public ExceptionsList(OWLEditorKit owlEditorKit) {
-        this.owlEditorKit = owlEditorKit;
-        //setCellRenderer(new IndividualsRenderer(owlEditorKit));
-        
-        setCellRenderer(new DIPListCellRenderer(owlEditorKit));
-        mediator = new LinkedObjectComponentMediator(owlEditorKit, this);
-
-        getSelectionModel().addListSelectionListener(new ListSelectionListener(){
-            public void valueChanged(ListSelectionEvent event) {
-                ChangeEvent ev = new ChangeEvent(ExceptionsList.this);
-                for (ChangeListener l : copyListeners){
-                    l.stateChanged(ev);
-                }
-            }
-        });
-    }
+	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 
 
-    public void setExceptionsList(Ranking ranking) throws OWLOntologyCreationException {
-        List<Object> data = new ArrayList<Object>();
-        
-        //System.out.println(ranking);
-        int rankIdx = 1;
+	public ExceptionsList(OWLEditorKit owlEditorKit) {
+		this.owlEditorKit = owlEditorKit;
+
+		setCellRenderer(new DIPListCellRenderer(owlEditorKit));
+		mediator = new LinkedObjectComponentMediator(owlEditorKit, this);
+
+		getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+			public void valueChanged(ListSelectionEvent event) {
+				ChangeEvent ev = new ChangeEvent(ExceptionsList.this);
+				for (ChangeListener l : copyListeners){
+					l.stateChanged(ev);
+				}
+			}
+		});
+	}
+
+
+	public void setExceptionsList(Ranking ranking) throws OWLOntologyCreationException {    	
+		List<Object> data = new ArrayList<Object>();
+
+		Utility u = new Utility();
+		/*int rankIdx = ranking.size()-1;
         Iterator<Rank> rIter = ranking.getRanking().iterator();
         boolean done = false;
         while (rIter.hasNext() && !done){
-        	if (rankIdx == ranking.size()){
+        	if (rankIdx == 0){
         		done = true;
         	}
         	else{
@@ -95,23 +95,66 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
         		for (OWLAxiom a : rank.getAxioms()) {
         			OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
         			lhss.add(sub.getSubClass());
-        			
+
         		}
         		for (OWLClassExpression c : lhss) {
         			data.add(new DIPQueryResultsSectionItem(c));
         		}
-        		rankIdx++;
+        		rankIdx--;
         	}
-        	
-        }
-       
-        setListData(data.toArray());
-    }
+
+        }*/
+
+		ArrayList<Rank> ranks = ranking.getRanking();
+		// If there are exceptions
+		if (ranking.size() > 1) {
+			for (Rank r: ranks) {
+				// Skip non-exceptions (the first rank) 
+				if (r.getIndex() > 1) {
+					data.add(new DIPQueryResultsSection("Level " + (r.getIndex()-1)));
+					Set<OWLClassExpression> lhss = new HashSet<OWLClassExpression>();
+					for (OWLAxiom a : r.getAxioms()) {
+						OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
+						lhss.add(sub.getSubClass());
+					}
+					for (OWLClassExpression c : lhss) {
+						data.add(new DIPQueryResultsSectionItem(c));
+					}
+				}
+			}
+		}
+
+		// If there are total exceptions
+		boolean hasTotallyExceptionalAxioms = false;
+		if (ranking.getInfiniteRank().size() > 0) {
+			for (OWLAxiom a : ranking.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.SUBCLASS_OF) && u.isDefeasible(a)) {
+					hasTotallyExceptionalAxioms = true;
+				}    			
+			}
+		}
+
+		if (hasTotallyExceptionalAxioms) {
+			data.add(new DIPQueryResultsSection("Uninstantiable"));
+			Set<OWLClassExpression> lhss = new HashSet<OWLClassExpression>();
+			for (OWLAxiom a : ranking.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.SUBCLASS_OF) && u.isDefeasible(a)) {
+					OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
+					lhss.add(sub.getSubClass());
+				}    			
+			}
+			for (OWLClassExpression c : lhss) {
+				data.add(new DIPQueryResultsSectionItem(c));
+			}
+		}
+
+		setListData(data.toArray());
+	}
 
 
-    protected List<MListButton> getButtons(Object value) {
-    	return Collections.emptyList();
-       /* if (value instanceof DIPQueryResultsSectionItem) {
+	protected List<MListButton> getButtons(Object value) {
+		return Collections.emptyList();
+		/* if (value instanceof DIPQueryResultsSectionItem) {
         	final OWLAxiom axiom = ((DIPQueryResultsSectionItem) value).getAxiom();
         	List<MListButton> buttons = new ArrayList<MListButton>();
         	buttons.add(new ExplainButton(new ActionListener() {
@@ -125,72 +168,72 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
         else {
             return Collections.emptyList();
         }*/
-    }
+	}
 
 
-    public JComponent getComponent() {
-        return this;
-    }
+	public JComponent getComponent() {
+		return this;
+	}
 
 
-    public OWLObject getLinkedObject() {
-        return mediator.getLinkedObject();
-    }
+	public OWLObject getLinkedObject() {
+		return mediator.getLinkedObject();
+	}
 
 
-    public Point getMouseCellLocation() {
-        Rectangle r = getMouseCellRect();
-        if (r == null) {
-            return null;
-        }
-        Point mousePos = getMousePosition();
-        if (mousePos == null) {
-            return null;
-        }
-        return new Point(mousePos.x - r.x, mousePos.y - r.y);
-    }
+	public Point getMouseCellLocation() {
+		Rectangle r = getMouseCellRect();
+		if (r == null) {
+			return null;
+		}
+		Point mousePos = getMousePosition();
+		if (mousePos == null) {
+			return null;
+		}
+		return new Point(mousePos.x - r.x, mousePos.y - r.y);
+	}
 
 
-    public Rectangle getMouseCellRect() {
-        Point mousePos = getMousePosition();
-        if (mousePos == null) {
-            return null;
-        }
-        int sel = locationToIndex(mousePos);
-        if (sel == -1) {
-            return null;
-        }
-        return getCellBounds(sel, sel);
-    }
+	public Rectangle getMouseCellRect() {
+		Point mousePos = getMousePosition();
+		if (mousePos == null) {
+			return null;
+		}
+		int sel = locationToIndex(mousePos);
+		if (sel == -1) {
+			return null;
+		}
+		return getCellBounds(sel, sel);
+	}
 
 
-    public void setLinkedObject(OWLObject object) {
-        mediator.setLinkedObject(object);
-    }
+	public void setLinkedObject(OWLObject object) {
+		mediator.setLinkedObject(object);
+	}
 
 
-    public boolean canCopy() {
-        return getSelectedIndices().length > 0;
-    }
+	public boolean canCopy() {
+		return getSelectedIndices().length > 0;
+	}
 
 
-    public List<OWLObject> getObjectsToCopy() {
-        List<OWLObject> copyObjects = new ArrayList<OWLObject>();
-        for (Object sel : getSelectedValues()){
-            if (sel instanceof DIPQueryResultsSectionItem){
-                copyObjects.add(((DIPQueryResultsSectionItem)sel).getOWLObject());
-            }
-        }
-        return copyObjects;
-    }
+	public List<OWLObject> getObjectsToCopy() {
+		List<OWLObject> copyObjects = new ArrayList<OWLObject>();
+		for (Object sel : getSelectedValues()){
+			if (sel instanceof DIPQueryResultsSectionItem){
+				copyObjects.add(((DIPQueryResultsSectionItem)sel).getOWLObject());
+			}
+		}
+		return copyObjects;
+	}
 
 
-    public void addChangeListener(ChangeListener changeListener) {
-        copyListeners.add(changeListener);
-    }
+	public void addChangeListener(ChangeListener changeListener) {
+		copyListeners.add(changeListener);
+	}
 
 
-    public void removeChangeListener(ChangeListener changeListener) {
-        copyListeners.remove(changeListener);
-    }
+	public void removeChangeListener(ChangeListener changeListener) {
+		copyListeners.remove(changeListener);
+	}
 }

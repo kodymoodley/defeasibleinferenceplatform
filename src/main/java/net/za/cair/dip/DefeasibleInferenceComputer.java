@@ -7,6 +7,7 @@ import java.util.Set;
 
 //import org.semanticweb.owl.explanation.impl.blackbox.hst.HittingSetTree;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
@@ -16,6 +17,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
@@ -105,7 +107,6 @@ public class DefeasibleInferenceComputer {
 
 	private OWLDataFactory df;
 	private DefeasibleInferenceHelperClass helperClass;
-	//public HittingSetTree<OWLAxiom> hst;
 	
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory){ // NO_UCD (unused code)
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
@@ -219,6 +220,14 @@ public class DefeasibleInferenceComputer {
 			return 0.0;
 		}
 	}*/
+	
+	public boolean isConsistent(Ranking ranking) throws OWLOntologyCreationException {
+		/**** Defeasible Ontology is Preferentially Inconsistent iff Infinite Rank is classically Inconsistent */		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(ranking.getInfiniteRank().getAxiomsAsSet());	
+		OWLReasoner reasoner = reasonerFactory.createReasoner(tmpOntology);
+		return reasoner.isConsistent();
+	}
 	
 	public boolean isEntailed(Query query) throws OWLOntologyCreationException{
 		lexrelanswer = false;
@@ -458,12 +467,12 @@ public class DefeasibleInferenceComputer {
 		}
 		
 		/*** Reverse ranking order ****/
-		int n = ranks.size();
+		/*int n = ranks.size();
 	    for (int i = 0; i <= Math.floor((n-2)/2);i++){
 	         Rank tmp = ranks.get(i);
 	         ranks.set(i, ranks.get(n - 1 - i));
 	         ranks.set(n - 1 - i, tmp);
-		}
+		}*/
 	    
 	    /** Calculate C-compatible subset of the ranking */ 
 	    ArrayList<Rank> cCompatibleRanks = helperClass.getCCompatibleSubset(ranks, originalQuery, modifiedQuery);
@@ -558,12 +567,12 @@ public class DefeasibleInferenceComputer {
 		}
 		
 		/*** Reverse ranking order ****/
-		int n = ranks.size();
+		/*int n = ranks.size();
 	    for (int i = 0; i <= Math.floor((n-2)/2);i++){
 	         Rank tmp = ranks.get(i);
 	         ranks.set(i, ranks.get(n - 1 - i));
 	         ranks.set(n - 1 - i, tmp);
-		}
+		}*/
 	    
 	    /** Calculate C-compatible subset of the ranking */ 
 	    ArrayList<Rank> cCompatibleRanks = helperClass.getCCompatibleSubset(ranks, originalQuery, modifiedQuery);
@@ -593,12 +602,15 @@ public class DefeasibleInferenceComputer {
 		}
 	}	
 	
-	public void computeSuperClasses(OWLClassExpression cls, OWLClassExpression ccompat, Rank infRank) throws OWLOntologyCreationException{
+	public void computeSuperClasses(OWLClassExpression cls, OWLClassExpression ccompat, Rank infRank) throws OWLOntologyCreationException, InconsistentOntologyException{
 		strictSuperClasses = new HashSet<OWLClass>();
 		typicalSuperClasses = new HashSet<OWLClass>();
 		
 		Set<OWLAxiom> strictKnwldge = new HashSet<OWLAxiom>();
-		strictKnwldge.addAll(infRank.getAxioms());
+		for (OWLAxiom ax: infRank.getAxioms()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				strictKnwldge.add(ax);
+		}
 		 		 
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(strictKnwldge);
@@ -607,10 +619,24 @@ public class DefeasibleInferenceComputer {
 		
 		strictSuperClasses = new HashSet<OWLClass>(reasoner.getSuperClasses(cls, false).getFlattened());
 		
+		/*System.out.println();
+		System.out.println("Strict:");
+		for (OWLClass c: strictSuperClasses) {
+			System.out.println(c);
+		}
+		System.out.println();*/
+		
+		
 		OWLAxiom axiom = ontologyManager.getOWLDataFactory().getOWLSubClassOfAxiom(ontologyManager.getOWLDataFactory().getOWLThing(), ccompat);
 		ontologyManager.addAxiom(tmpOntology, axiom);
 		 
 		typicalSuperClasses = new HashSet<OWLClass>(reasoner.getSuperClasses(cls, false).getFlattened());
+		
+		/*System.out.println("typical:");
+		for (OWLClass c: typicalSuperClasses) {
+			System.out.println(c);
+		}
+		System.out.println();*/
 		
 		for (OWLClass c: strictSuperClasses){
 			typicalSuperClasses.remove(c);
@@ -641,15 +667,15 @@ public class DefeasibleInferenceComputer {
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
 		
 		/*** Reverse ranking order ****/
-		int n = ranks.size();
+		/*int n = ranks.size();
 		for (int i = 0; i <= Math.floor((n-2)/2);i++){
 		   Rank tmp = ranks.get(i);
 		   ranks.set(i, ranks.get(n - 1 - i));
 		   ranks.set(n - 1 - i, tmp);
-		}
+		}*/
 		   		
 		/** Calculate C-compatible subset of the ranking */ 
-		/** Don't think this should be calculated for the relevant closures... */
+		/** This should be calculated for all closures except the Relevant closures */
 		if (!algorithm.equals(ReasoningType.RELEVANT) && !algorithm.equals(ReasoningType.MIN_RELEVANT)){
 			try {
 				cCompatibleRanks = helperClass.getCCompatibleSubset(ranks, cls);
@@ -659,6 +685,7 @@ public class DefeasibleInferenceComputer {
 			}
 		}
 		
+		/** Additional work for Lexicographic closure */
 		if (algorithm.equals(ReasoningType.LEXICOGRAPHIC)){
 			System.out.println();
 			System.out.println("Lexicographic Closure");
@@ -676,6 +703,7 @@ public class DefeasibleInferenceComputer {
 				return df.getOWLObjectIntersectionOf(helperClass.getInternalisation(cCompatibleRanks), lac);
 			}
 		}
+		/** Additional work for Basic Relevant closure */
 		else if (algorithm.equals(ReasoningType.RELEVANT)){
 			System.out.println();
 			System.out.println("Basic Relevant Closure");
@@ -684,6 +712,7 @@ public class DefeasibleInferenceComputer {
 			ArrayList<Rank> mrCCompatibleRanks = helperClass.getMRCCompatibleSubset(ranks, cls, cbasis);	
 			return helperClass.getInternalisation(mrCCompatibleRanks);
 		}
+		/** Additional work for Minimal Relevant closure */
 		else if (algorithm.equals(ReasoningType.MIN_RELEVANT)){
 			System.out.println();
 			System.out.println("Minimal Relevant Closure");

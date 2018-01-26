@@ -50,7 +50,7 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
  */
 
 public class RationalRankingAlgorithm{
-	
+
 	private OntologyStructure ontologyStructure;
 	private OWLReasonerFactory reasonerFactory;
 	private Set<OWLClassExpression> possibleExceptions;
@@ -61,7 +61,7 @@ public class RationalRankingAlgorithm{
 	public int recursiveCount; // NO_UCD (unused code)
 	public int noOfBrokenAxioms;  // NO_UCD (unused code)
 	public int unsatLHSDefeasibleSubs;
-	
+
 	public RationalRankingAlgorithm(OWLReasonerFactory reasonerFactory, OntologyStructure ontologyStructure, Set<OWLClassExpression> possibleExceptions){ // NO_UCD (test only)
 		this.ontologyStructure = ontologyStructure;
 		this.reasonerFactory = reasonerFactory;
@@ -72,7 +72,7 @@ public class RationalRankingAlgorithm{
 		noOfBrokenAxioms = 0;
 		unsatLHSDefeasibleSubs = 0;
 	}
-	
+
 	public RationalRankingAlgorithm(OWLReasonerFactory reasonerFactory, OWLOntology ontology) throws OWLOntologyCreationException{
 		/*ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 		System.out.println();
@@ -82,69 +82,109 @@ public class RationalRankingAlgorithm{
 				count++;
 			}		
 	    }
-		
+
 		System.out.println();
-		
+
 		System.out.println();
 		//System.out.println(ontology.getLogicalAxiomCount());*/
-		
+
+		// Print etransforms
+		Utility u = new Utility();
+		ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+		System.out.println();
+		System.out.println("Ontology Axioms:");
+		System.out.println("----------------");
+		for (OWLAxiom a: ontology.getLogicalAxioms()) {
+			System.out.print(man.render(a));
+			if (u.isDefeasible(a)){
+				System.out.println("*");
+			}	
+			else {
+				System.out.println();
+			}
+		}
+		System.out.println();
+
 		this.ontologyStructure = new OntologyStructure(ontology);
-		//System.out.println("total: " + ontology.getLogicalAxiomCount());
-		//System.out.println("defeasible: " + ontologyStructure.dBox.getAxioms().size());
-		//System.out.println("strict: " + ontologyStructure.bBox.getAxioms().size());
-		
-		//System.out.println(ontologyStructure.dBox.getAxioms().size());
-		//System.out.println(ontologyStructure.bBox.getAxioms().size());
+
 		this.reasonerFactory = reasonerFactory;
 		helperClass = new RankingHelperClass(reasonerFactory, ontologyStructure);
 		this.possibleExceptions = helperClass.getPossibleExceptions();
-		//System.out.println("optimised: " + possibleExceptions.size());
-		//System.out.println("unoptimised: " + helperClass.getAllLHSConcepts().size());
-		
+
 		rankingTmp = new Ranking();
 		entailmentChecks = 0;
 		recursiveCount = 0;
 		noOfBrokenAxioms = 0;
 		unsatLHSDefeasibleSubs = helperClass.unsatLHSDefeasibleSubsumptions;
 	}
-	
+
 	public Ranking computeRanking() throws OWLException{
 		ArrayList<ArrayList<OWLAxiom>> eT = new ArrayList<ArrayList<OWLAxiom>>();
 		ArrayList<ArrayList<OWLAxiom>> dT = new ArrayList<ArrayList<OWLAxiom>>();
-				
+
 		AxiomETransformFactory eFactory = new AxiomETransformFactory(reasonerFactory, ontologyStructure, possibleExceptions);
 		eT = eFactory.generateETransforms();
-		eT = removeEmptyRanks(eT);			//remove empty ranks
+
+		// Print etransforms
+		int c = 0;
+		ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+		System.out.println();
+		System.out.println("E-Transforms:");
+		System.out.println("-------------");
+		for (ArrayList<OWLAxiom> trans: eT) {
+			System.out.println(c + ":");
+			for (OWLAxiom a: trans) {
+				System.out.println(man.render(a));
+			}
+			c++;
+			System.out.println();
+		}
+		System.out.println();
+		System.out.println("Infinite Rank:");
+		System.out.println("--------------");
+		// Print infinite rank
+		for (OWLAxiom a: eFactory.infiniteRank) {
+			System.out.println(man.render(a));
+		}
+		System.out.println();
+
+		//eT = removeEmptyRanks(eT); //remove empty ranks
 		entailmentChecks = eFactory.entailmentChecks;
 		recursiveCount = eFactory.recursiveCount;
 		noOfBrokenAxioms = eFactory.noOfBrokenAxioms;
-		
+
 		ArrayList<ArrayList<OWLAxiom>> new_dT = new ArrayList<ArrayList<OWLAxiom>>();
 
 		if (!eT.isEmpty()){
 			DTransformFactory dFactory = new DTransformFactory(eT);
 			dT = dFactory.getDTransforms();
-			
+
+			// Remove infinite rank
 			for (ArrayList<OWLAxiom> tmp: dT){
 				if (!tmp.equals(eFactory.infiniteRank))
 					new_dT.add(tmp);
 			}
 		}
-		
-		for (ArrayList<OWLAxiom> dTRank: new_dT){										//add other ranks
-			rankingTmp.add(new Rank(dTRank));
+
+		// Create ranks
+		for (int i = 0; i <= new_dT.size()-1;i++) {
+			rankingTmp.add(new Rank(new_dT.get(i), i+1));
 		}
 		
+		/*for (ArrayList<OWLAxiom> dTRank: new_dT){										//add other ranks
+			rankingTmp.add(new Rank(dTRank));
+		}*/
+
 		/** Generate infinite rank **/
 		Set<OWLAxiom> infiniteRankAxioms = new HashSet<OWLAxiom>();
 		infiniteRankAxioms.addAll(eFactory.infiniteRank);
 		infiniteRankAxioms.addAll(ontologyStructure.bBox.getAxioms());
 		this.infiniteRank = new Rank(new ArrayList<OWLAxiom>(infiniteRankAxioms));
 		rankingTmp.setInfiniteRank(this.infiniteRank);
-		
+
 		return rankingTmp;	
 	}
-	
+
 	private ArrayList<ArrayList<OWLAxiom>> removeEmptyRanks(ArrayList<ArrayList<OWLAxiom>> set){
 		ArrayList<ArrayList<OWLAxiom>> result = new ArrayList<ArrayList<OWLAxiom>>();
 		for (ArrayList<OWLAxiom> tmp: set){
@@ -154,15 +194,15 @@ public class RationalRankingAlgorithm{
 		}
 		return result;
 	}
-	
+
 	public Ranking getRanking(){
 		return rankingTmp;
 	}
-	
+
 	public Rank getInfiniteRank(){
 		return this.infiniteRank;
 	}
-	
+
 	public OntologyStructure getOntologyStructure(){
 		return ontologyStructure;
 	}

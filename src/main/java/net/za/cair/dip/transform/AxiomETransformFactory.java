@@ -11,6 +11,7 @@ import net.za.cair.dip.model.OntologyStructure;
 import net.za.cair.dip.util.Utility;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -58,7 +59,7 @@ public class AxiomETransformFactory{
 	public int entailmentChecks;
 	public int recursiveCount;
 	public int noOfBrokenAxioms;
-	//private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 	
 	
 	private Set<OWLClassExpression> pE;
@@ -71,10 +72,14 @@ public class AxiomETransformFactory{
 		this.pE = new HashSet<OWLClassExpression>();
 		this.pE.addAll(possibleExceptions);
 		e0 = new ArrayList<OWLAxiom>();
+		System.out.println();
+		System.out.println("e0:");
 		for (OWLAxiom a: this.ontologyStructure.dBox.getAxiomsAsList()){
-			//System.out.println(man.render(a));
+			System.out.println(man.render(a));
 			e0.add(a);
 		}
+		System.out.println("end e0");
+		System.out.println();
 		eTransforms = new ArrayList<ArrayList<OWLAxiom>>();		
 		eTransforms.add(e0);
 		entailmentChecks = 0;
@@ -92,9 +97,16 @@ public class AxiomETransformFactory{
 		for (OWLAxiom a: e0){
 			dInfinity.add(a);
 		}
-		while (!dInfinity.isEmpty()){
+		/*while (!dInfinity.isEmpty()){
 			ArrayList<OWLAxiom> tmp2 = null;
 			tmp2 = genNextETransform(e0);
+			System.out.println();
+			System.out.println("next:");
+			for (OWLAxiom a: tmp2) {
+				System.out.println(man.render(a));
+			}
+			System.out.println("end next");
+			System.out.println();
 			boolean fixedPointReached = (tmp2.containsAll(e0));
 			if (!fixedPointReached){
 				eTransforms.add(tmp2);
@@ -123,11 +135,16 @@ public class AxiomETransformFactory{
 				eTransforms.clear();
 				//System.out.println("DBox before: " + ontologyStructure.dBox.getAxioms().size());
 				//System.out.println("BBox before: " + ontologyStructure.bBox.getAxioms().size());
+				System.out.println();
+				System.out.println("?!??!?!?");
 				for (OWLAxiom axiom: dInfinity){
-					//System.out.println(man.render(axiom));
+					System.out.println(man.render(axiom));
+					
 					this.ontologyStructure.transferFromDBoxToBBox(axiom);
 					broken++;
 				}
+				System.out.println("SSssssss");
+				System.out.println();
 				//System.out.println();
 				//System.out.println("DBox after: " + ontologyStructure.dBox.getAxioms().size());
 				//System.out.println("BBox after: " + ontologyStructure.bBox.getAxioms().size());
@@ -145,6 +162,36 @@ public class AxiomETransformFactory{
 			}
 			
 			
+		}*/
+		
+		while (!dInfinity.isEmpty()){
+			ArrayList<OWLAxiom> tmp2 = null;
+			tmp2 = genNextETransform(e0);
+			
+			System.out.println();
+			System.out.println("next:");
+			for (OWLAxiom a: tmp2) {
+				System.out.println(man.render(a));
+			}
+			System.out.println("end next");
+			System.out.println();
+			boolean fixedPointReached = (tmp2.containsAll(e0));
+			if (fixedPointReached) {
+				dInfinity = new ArrayList<OWLAxiom>();
+				if (!tmp2.isEmpty()) {
+					// We have infinite rank
+					for (OWLAxiom a: tmp2) {
+						infiniteRank.add(a);
+					}
+				}
+			}
+			else {
+				// add etransform
+				eTransforms.add(tmp2);
+				pE = getExceptions(tmp2);
+				// assign e0 to tmp2
+				e0 = tmp2;
+			}
 		}
 
 		noOfBrokenAxioms = broken;
@@ -164,15 +211,14 @@ public class AxiomETransformFactory{
 	
 	private ArrayList<OWLAxiom> genNextETransform(ArrayList<OWLAxiom> axioms) throws OWLException{
 		ArrayList<OWLAxiom> result = new ArrayList<OWLAxiom>();
-		//ManchesterOWLSyntaxOWLObjectRendererImpl renderer = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-		
-		//System.out.println("Before: " + axioms.size());
-		/*for (OWLAxiom a: axioms){
-			System.out.println(renderer.render(a));
-		}*/
 	
 		/************************************************Mat(O) subs not C METHOD***********************************************************/
-		OWLOntology ontology = manager.createOntology(this.ontologyStructure.bBox.getAxioms());
+		Set<OWLAxiom> background = new HashSet<OWLAxiom>();
+		for (OWLAxiom ax: this.ontologyStructure.bBox.getAxioms()) {
+			if (!ax.isOfType(AxiomType.ABoxAxiomTypes))
+				background.add(ax);
+		}
+		OWLOntology ontology = manager.createOntology(background);
 		OWLReasoner entailChecker = reasonerFactory.createReasoner(ontology);
 		Set<OWLAxiom> dBox = new HashSet<OWLAxiom>();
 		for (OWLAxiom a: axioms){
@@ -186,12 +232,7 @@ public class AxiomETransformFactory{
 			rhs = dataF.getOWLObjectComplementOf(exc);
 			try{
 				entailmentChecks++;
-		
 				if (entailChecker.isEntailed(dataF.getOWLSubClassOfAxiom(lhs, rhs))){
-					//if (man.render(exc).equals("concept104")){
-					//	System.out.println("concept104 is exceptional!");
-					//}
-					//System.out.println("exceptional, " + renderer.render(exc));
 					//We know that RHS = C is exceptional
 					//Therefore, find ALL C subs D to add to the exceptional axioms list.
 					for (OWLAxiom a: axioms){
@@ -202,23 +243,12 @@ public class AxiomETransformFactory{
 						}
 					}
 				}
-				else{
-					//if (man.render(exc).equals("concept104")){
-					//	System.out.println("concept104 is not exceptional??");
-					//}
-				}
 			}
 			catch(Exception e){
 				System.out.println("error doing entailment check during ranking!");
 				e.printStackTrace();
 			}
 		}
-		
-		/*System.out.println("After: ");
-		for (OWLAxiom a: result){
-			System.out.println(renderer.render(a));
-		}*/
-		//System.out.println("After: " + result.size());
 		return result;
 	}
 }

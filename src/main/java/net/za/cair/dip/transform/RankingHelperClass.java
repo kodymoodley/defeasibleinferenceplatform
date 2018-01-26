@@ -18,6 +18,7 @@ import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 import org.semanticweb.owlapi.reasoner.Node;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -68,14 +69,10 @@ public class RankingHelperClass {
 	/** Optimisation for ranking procedure. Only returns the UNSATISFIABLE LHS concepts
 	 *  of the defeasible axioms in the ontology. Only these could possibly be exceptional */
 	
-	public Set<OWLClassExpression> getPossibleExceptions() throws OWLOntologyCreationException{
+	public Set<OWLClassExpression> getPossibleExceptions() throws OWLOntologyCreationException, InconsistentOntologyException{
 		Set<OWLClassExpression> result = new HashSet<OWLClassExpression>();
 		
 		Set<OWLAxiom> defeasible = structure.dBox.getAxioms();
-		/*for (OWLAxiom a: defeasible){
-			System.out.println(renderer.render(a));
-		}
-		System.out.println(defeasible.size());*/
 		Set<OWLClassExpression> lhsConceptsOfDefeasibleSubsumptions = new HashSet<OWLClassExpression>();
 		Set<OWLClassExpression> complexLHSConcepts = new HashSet<OWLClassExpression>();
 		
@@ -96,7 +93,8 @@ public class RankingHelperClass {
 		
 		Set<OWLAxiom> originalOntologyAxioms = new HashSet<OWLAxiom>();
 		for (OWLAxiom a: structure.getOriginalOWLOntology().getAxioms()){
-			originalOntologyAxioms.add(a);
+			if (!a.isOfType(AxiomType.ABoxAxiomTypes))					// Do not consider ABox axioms because it can lead to inconsistency
+				originalOntologyAxioms.add(a);
 		}
 		
 		Set<OWLAxiom> newOntologyAxioms = new HashSet<OWLAxiom>();
@@ -116,7 +114,16 @@ public class RankingHelperClass {
 		
 		OWLOntology newOntology = OWLManager.createOWLOntologyManager().createOntology(newOntologyAxioms);
 		OWLReasoner reasoner = reasonerFactory.createReasoner(newOntology);
-		Node<OWLClass> unsatClses = reasoner.getUnsatisfiableClasses();
+		Node<OWLClass> unsatClses = null;
+		
+		try {
+			unsatClses = reasoner.getUnsatisfiableClasses();
+		}
+		catch (InconsistentOntologyException e) {
+			// Ontology is classically inconsistent here. Plus we do not consider ABox axioms. Therefore, must be also preferentially inconsistent (TBox inconsistent).
+			// Theorem 1: A defeasible ontology <T,D> (no ABox) is preferentially inconsistent iff T U D' is classically inconsistent (D' is classical translation of D).  
+			throw new InconsistentOntologyException();			
+		}
 		
 		// Identify the possible exceptions: the unsatisfiable concepts
 		// that were names in the original ontology, plus the expressions

@@ -63,7 +63,8 @@ public class StrictAxiomsViewComponent extends AbstractActiveOntologyViewCompone
 	
 	private Set<OWLAxiom> getStrictAxioms(OWLOntology ontology){
 		Set<OWLAxiom> strictAxioms = new HashSet<OWLAxiom>();
-		for (OWLAxiom axiom: getOWLModelManager().getActiveOntology().getTBoxAxioms(Imports.EXCLUDED)){
+		//for (OWLAxiom axiom: getOWLModelManager().getActiveOntology().getTBoxAxioms(Imports.EXCLUDED)){
+		for (OWLAxiom axiom: getOWLModelManager().getActiveOntology().getLogicalAxioms()){
 			Utility u = new Utility();
 			if (!u.isDefeasible(axiom))
 				strictAxioms.add(axiom);

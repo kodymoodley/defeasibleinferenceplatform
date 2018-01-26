@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.swing.JComponent;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -154,17 +153,21 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
         Collections.sort(list, descriptionComparator);
         return list;
     }
+    
+    public void clear(){
+    	List<Object> data = new ArrayList<Object>();
+    	setListData(data.toArray());
+    }
 
 
     public void setOWLClassExpression(OWLClassExpression description, ReasoningType algorithm, Ranking ranking) throws OWLOntologyCreationException {
-        
-    	List<Object> data = new ArrayList<Object>();
+       	List<Object> data = new ArrayList<Object>();
         OWLDataFactory factory = owlEditorKit.getOWLModelManager().getOWLDataFactory();
-        //OWLReasoner reasoner = owlEditorKit.getModelManager().getReasoner();
+
         if (showSuperClasses) {
         	System.out.println("LHS: " + man.render(description));
         	System.out.println();
-        	System.out.println("Ranking: ");
+        	System.out.println("Ranking !!!1!!!: ");
         	System.out.println(ranking);
         	System.out.println();
         	DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(owlEditorKit.getModelManager().getOWLReasonerManager().getCurrentReasonerFactory().getReasonerFactory(), ranking);
@@ -182,6 +185,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
         		}
         	}
         	
+        	
         	int newSize2 = 0;
         	if (results2.size() > 0){
         		for (OWLClass superClass : results2) {
@@ -190,6 +194,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
         			}
         		}
         	}
+ 
         	
         	if (newSize1 > 0){
         		data.add(new DIPQueryResultsSection("Strict super classes (" + newSize1 + ")"));
@@ -199,6 +204,9 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
         			}
         		}
         	}
+        	else {
+        		data.add(new DIPQueryResultsSection("No strict super classes."));
+        	}
         	
         	if (newSize2 > 0){
         		data.add(new DIPQueryResultsSection("Typical super classes (" + newSize2 + ")"));
@@ -207,6 +215,9 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
         				data.add(new DIPQueryResultsSectionItem(superClass, factory.getOWLSubClassOfAxiom(description, superClass)));
         			}
         		}
+        	}
+        	else {
+        		data.add(new DIPQueryResultsSection("No typical super classes."));
         	}
         	
         }
