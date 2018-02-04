@@ -113,7 +113,7 @@ public class RankingHelperClass {
 		// Classify new ontology and obtain unsatisfiable class names.
 		
 		OWLOntology newOntology = OWLManager.createOWLOntologyManager().createOntology(newOntologyAxioms);
-		OWLReasoner reasoner = reasonerFactory.createReasoner(newOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(newOntology);
 		Node<OWLClass> unsatClses = null;
 		
 		try {

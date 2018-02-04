@@ -97,7 +97,8 @@ public class Rank implements Serializable{
 	
 	public String toString(){
 		ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-		String result = "";
+		String result = "Level " + getIndex() + ":\n";
+		result += "-------------------\n";
 		for (OWLAxiom a: this.rank){
 			result += man.render(a) + "\n";
 		}

@@ -55,6 +55,7 @@ public class RationalRankingAlgorithm{
 	private OWLReasonerFactory reasonerFactory;
 	private Set<OWLClassExpression> possibleExceptions;
 	private RankingHelperClass helperClass;
+	private ArrayList<ArrayList<OWLAxiom>> globalETransforms;
 	private Ranking rankingTmp;
 	private Rank infiniteRank;
 	public int entailmentChecks; // NO_UCD (unused code)
@@ -124,6 +125,7 @@ public class RationalRankingAlgorithm{
 
 		AxiomETransformFactory eFactory = new AxiomETransformFactory(reasonerFactory, ontologyStructure, possibleExceptions);
 		eT = eFactory.generateETransforms();
+		globalETransforms = eFactory.getETransforms();
 
 		// Print etransforms
 		int c = 0;
@@ -205,5 +207,9 @@ public class RationalRankingAlgorithm{
 
 	public OntologyStructure getOntologyStructure(){
 		return ontologyStructure;
+	}
+	
+	public ArrayList<ArrayList<OWLAxiom>> getETransforms(){
+		return globalETransforms;
 	}
 }

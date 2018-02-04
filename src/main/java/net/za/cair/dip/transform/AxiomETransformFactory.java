@@ -75,11 +75,11 @@ public class AxiomETransformFactory{
 		System.out.println();
 		System.out.println("e0:");
 		for (OWLAxiom a: this.ontologyStructure.dBox.getAxiomsAsList()){
-			System.out.println(man.render(a));
+			//System.out.println(man.render(a));
 			e0.add(a);
 		}
-		System.out.println("end e0");
-		System.out.println();
+		//System.out.println("end e0");
+		//System.out.println();
 		eTransforms = new ArrayList<ArrayList<OWLAxiom>>();		
 		eTransforms.add(e0);
 		entailmentChecks = 0;
@@ -168,13 +168,13 @@ public class AxiomETransformFactory{
 			ArrayList<OWLAxiom> tmp2 = null;
 			tmp2 = genNextETransform(e0);
 			
-			System.out.println();
+			/*System.out.println();
 			System.out.println("next:");
 			for (OWLAxiom a: tmp2) {
 				System.out.println(man.render(a));
 			}
 			System.out.println("end next");
-			System.out.println();
+			System.out.println();*/
 			boolean fixedPointReached = (tmp2.containsAll(e0));
 			if (fixedPointReached) {
 				dInfinity = new ArrayList<OWLAxiom>();
@@ -219,7 +219,7 @@ public class AxiomETransformFactory{
 				background.add(ax);
 		}
 		OWLOntology ontology = manager.createOntology(background);
-		OWLReasoner entailChecker = reasonerFactory.createReasoner(ontology);
+		OWLReasoner entailChecker = reasonerFactory.createNonBufferingReasoner(ontology);
 		Set<OWLAxiom> dBox = new HashSet<OWLAxiom>();
 		for (OWLAxiom a: axioms){
 			dBox.add(a);
@@ -250,5 +250,9 @@ public class AxiomETransformFactory{
 			}
 		}
 		return result;
+	}
+	
+	public ArrayList<ArrayList<OWLAxiom>> getETransforms(){
+		return eTransforms;
 	}
 }

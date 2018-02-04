@@ -17,7 +17,7 @@
 	
 	<extension id="ClassAxiomQueryViewComponent"
       point="org.protege.editor.core.application.ViewComponent">
-      <label value="DIP"/>
+      <label value="Defeasible-Inference Platform"/>
       <class value="net.za.cair.dip.ui.view.OWLClassExpressionEditorViewComponent"/>
       <headerColor value="CC3366"/>
       <category value="DIP"/>      

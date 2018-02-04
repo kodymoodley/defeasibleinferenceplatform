@@ -114,7 +114,7 @@ public class Utility {
 		
 		for (OWLAnnotation anno: annos){
 			if ((man.render(anno)).contains("rank")){
-				System.out.println(anno.getValue());
+				//System.out.println(anno.getValue());
 				String s = anno.getValue().toString();
 				int i = 0;
 				String str = "";
@@ -135,8 +135,8 @@ public class Utility {
 	
 	public Ranking mergeRanks(ArrayList<Rank> nranks, int lowest, int highest){
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(nranks);
-		System.out.println("lowest: " + lowest + ", highest: " + highest);
-		System.out.println();
+		//System.out.println("lowest: " + lowest + ", highest: " + highest);
+		//System.out.println();
 	
 		ArrayList<Rank> result = new ArrayList<Rank>();
 		for (int i = lowest; i <= highest;i++){
@@ -152,10 +152,10 @@ public class Utility {
 			result.add(new Rank(axioms, i));
 		}
 		
-	    System.out.println("--before--");
-	    System.out.println();
+	    //System.out.println("--before--");
+		//System.out.println();
 	    
-		for (Rank r: result) {
+		/*for (Rank r: result) {
 		    System.out.println(r.getIndex() + ":");
 		    for (OWLAxiom a: r.getAxioms()) {
 		    	System.out.println(man.render(a));
@@ -308,7 +308,7 @@ public class Utility {
 	public boolean isConsistent(OWLReasonerFactory reasonerFactory, Set<OWLAxiom> aBox, Set<OWLAxiom> tBox) throws OWLOntologyCreationException{
 		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();axioms.addAll(aBox);axioms.addAll(tBox);
 		OWLOntology tmpOntology = OWLManager.createOWLOntologyManager().createOntology(axioms);
-		return reasonerFactory.createReasoner(tmpOntology).isConsistent();
+		return reasonerFactory.createNonBufferingReasoner(tmpOntology).isConsistent();
 	}
 	
 	public boolean containsAxiom(OWLReasonerFactory reasonerFactory, Set<OWLAxiom> axioms, OWLAxiom axiom) throws OWLOntologyCreationException{
@@ -317,7 +317,7 @@ public class Utility {
 			allAxioms.add(a);
 		}
 		OWLOntology tmpOntology = OWLManager.createOWLOntologyManager().createOntology(allAxioms);
-		return reasonerFactory.createReasoner(tmpOntology).isEntailed(axiom);
+		return reasonerFactory.createNonBufferingReasoner(tmpOntology).isEntailed(axiom);
 	}
 	
 	public static <T> boolean contains(Set<T> set, T element){

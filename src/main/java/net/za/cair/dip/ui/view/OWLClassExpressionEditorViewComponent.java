@@ -35,14 +35,17 @@ import org.protege.editor.owl.ui.CreateDefinedClassPanel;
 import org.protege.editor.owl.ui.clsdescriptioneditor.ExpressionEditor;
 import org.protege.editor.owl.ui.clsdescriptioneditor.OWLExpressionChecker;
 import org.protege.editor.owl.ui.view.AbstractOWLViewComponent;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AddOntologyAnnotation;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLException;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyChangeListener;
@@ -50,12 +53,15 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
+import org.semanticweb.owlapi.reasoner.NodeSet;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import net.za.cair.dip.DefeasibleInferenceComputer;
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
 import net.za.cair.dip.transform.RationalRankingAlgorithm;
+import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import net.za.cair.dip.util.Utility;
 
 /**
@@ -74,6 +80,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 	private ExpressionEditor<OWLClassExpression> owlDescriptionEditor;
 	private ResultsList resultsList;
 	private ExceptionsList exceptionsList;
+	private ArrayList<ArrayList<OWLAxiom>> eTransforms;
 	private boolean isConsistent;
 	private boolean isTBoxConsistent;
 	//private JCheckBox showSuperClassesCheckBox;
@@ -85,8 +92,9 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 	//private JButton addButton;
 	private OWLOntologyChangeListener ontListener;
 	//private OWLModelManagerListener listener;
-	private boolean requiresRefresh = false;
+	private boolean requiresRefresh = true;
 	private Ranking ranking;
+	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 
 	protected void initialiseOWLView() throws Exception {
 		setLayout(new BorderLayout(10, 10));
@@ -109,13 +117,12 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 				boolean logicalChange = false;
 				for (OWLOntologyChange ch: changes){
 					if (ch.isAddAxiom() || ch.isRemoveAxiom() || ch.isAxiomChange()){
-						if (ch.getAxiom().isLogicalAxiom())
-							logicalChange = true;
-					}
-				}
+						if (ch.getAxiom().isLogicalAxiom()) {
+							requiresRefresh = true;
+							isTBoxConsistent = true;
+						}
 
-				if (logicalChange){
-					requiresRefresh = true;
+					}
 				}
 			}
 		};
@@ -214,7 +221,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 		//resultsList.setShowSubClasses(true);
 		JComponent mainResultPanel = new JPanel(new GridLayout(1,1));
 		mainResultPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
-				Color.LIGHT_GRAY), "Defeasible Super Classes"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
+				Color.LIGHT_GRAY), "Super Classes"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
 		mainResultPanel.add(ComponentFactory.createScrollPane(resultsList));
 		resultsPanel.add(mainResultPanel, BorderLayout.CENTER);
 		return resultsPanel;
@@ -225,7 +232,8 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 		exceptionsPanel.setPreferredSize(new Dimension(500,500));
 		exceptionsPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
 				Color.LIGHT_GRAY), "Exceptions"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
-		exceptionsList = new ExceptionsList(getOWLEditorKit());
+		OWLReasonerManager reasonerManager = getOWLModelManager().getOWLReasonerManager();
+		exceptionsList = new ExceptionsList(getOWLEditorKit(), getOWLModelManager().getOWLDataFactory(), reasonerManager.getCurrentReasonerFactory().getReasonerFactory());
 		exceptionsPanel.add(ComponentFactory.createScrollPane(exceptionsList));
 		refreshButton = new JButton(new AbstractAction("Refresh") {
 			/**
@@ -235,7 +243,8 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 
 			public void actionPerformed(ActionEvent e) {
 				computeRanking();
-				saveRanking();
+				if (isTBoxConsistent)
+					saveRanking();
 			}
 		});
 
@@ -284,6 +293,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
     }*/
 
 	private void loadRanking() {
+		System.out.println("ATTEMPTING TO LOAD RANKING FROM FILE");
 		OWLOntology theOntology = getOWLModelManager().getActiveOntology();
 		Set<OWLAxiom> logicalAxioms = new HashSet<OWLAxiom>(theOntology.getLogicalAxioms());
 
@@ -309,16 +319,15 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 				strictAxioms.add(tmp);
 			}
 		}
-		if (done)
-			requiresRefresh = true;
-		
-		if (rankedAxioms.isEmpty()){//NO EXISTING/STORED RANKING
-			System.out.println("s!!adsa!!1");
+
+		if (done || rankedAxioms.isEmpty()){//NO EXISTING/STORED RANKING
+			System.out.println("NO STORED RANKING SO RECOMPUTING");
 			computeRanking(); 
-			saveRanking();
+			if (isTBoxConsistent)
+				saveRanking();
 		}
 		else{ //THERE IS A STORED RANKING
-			System.out.println("qwewr");
+			System.out.println("THERE IS A STORED RANKING SO JUST LOADING IT");
 			ArrayList<Rank> ranks = new ArrayList<Rank>();
 
 			int lowest = theOntology.getAxiomCount();
@@ -333,34 +342,39 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 				ranks.add(new Rank(new ArrayList<OWLAxiom>(Collections.singleton(axiom)), idx));
 			}
 
-			System.out.println("wef");
+			System.out.println("ATTEMPTING MERGING OF RANKS");
 			ranking = u.mergeRanks(ranks, lowest, highest);
 			if (ranking.getAxioms().isEmpty()){
-				System.out.println("hjko");
+				System.out.println("MERGING WAS UNSUCCESSFUL - RECOMPUTING");
 				computeRanking();
-				saveRanking();
+				if (isTBoxConsistent)
+					saveRanking();
 			}
 			else{
-				System.out.println("ooireuoe");
+				System.out.println("MERGING SUCCESSFUL - SAVING RANKING");
 				ranking.setInfiniteRank(new Rank(new ArrayList<OWLAxiom>(strictAxioms)));
-				System.out.println("before saving:");
-				System.out.println("--------------");
-				System.out.println(ranking);
-				System.out.println();
-				saveRanking();
+				//System.out.println("before saving:");
+				//System.out.println("--------------");
+				////System.out.println(ranking);
+				//System.out.println();
+				if (isTBoxConsistent)
+					saveRanking();
 			}
 		}
 
-		try {
-			System.out.println("after loading:");
-			System.out.println("--------------");
-			System.out.println(ranking);
-			System.out.println();
-			exceptionsList.setExceptionsList(ranking);
-		} 
-		catch (OWLOntologyCreationException e) {
-			System.out.println("Exception caught trying to display exceptions");
-			e.printStackTrace();
+		if (isTBoxConsistent) {
+			try {
+				//System.out.println("after loading:");
+				//System.out.println("--------------");
+				//System.out.println(ranking);
+				//System.out.println();
+
+				exceptionsList.setExceptionsList(ranking);
+			} 
+			catch (OWLOntologyCreationException e) {
+				System.out.println("Exception caught trying to display exceptions");
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -368,41 +382,68 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 		OWLOntologyManager man = getOWLModelManager().getOWLOntologyManager();
 		OWLOntology theOntology = getOWLModelManager().getActiveOntology();
 		Utility u = new Utility();
-		//int count = ranking.getRanking().size();
-		for (Rank rank: ranking.getRanking()){
-			for (OWLAxiom a: rank.getAxioms()){
+
+		try {
+			for (Rank rank: ranking.getRanking()){
+				for (OWLAxiom a: rank.getAxioms()){
+					Set<OWLAnnotation> annos = a.getAnnotations();
+					Set<OWLAnnotation> newAnnos = new HashSet<OWLAnnotation>();
+					for (OWLAnnotation an: annos){
+						if (!an.getProperty().equals(u.rankAnnotationProperty)){
+							newAnnos.add(an);
+						}
+					}
+
+					OWLAxiom aTmp = a.getAxiomWithoutAnnotations();
+					OWLAnnotation anno = getOWLModelManager().getOWLDataFactory().getOWLAnnotation(u.rankAnnotationProperty, getOWLModelManager().getOWLDataFactory().getOWLLiteral(rank.getIndex()));
+					newAnnos.add(anno);    			
+					man.removeAxiom(theOntology, a);
+					man.addAxiom(theOntology, aTmp.getAnnotatedAxiom(newAnnos));    			
+				}
+			}
+
+			// save ontology consistency status
+			OWLAnnotation consistencyStatus = null;
+			OWLDataFactory df = getOWLModelManager().getOWLDataFactory();
+			OWLAnnotation inconsistentAnn = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(false));
+			OWLAnnotation consistentAnn = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(true));
+
+			if (isConsistent) {
+				consistencyStatus = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(true));
+			}
+			else {
+				consistencyStatus = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(false));
+			}
+			man.applyChange(new RemoveOntologyAnnotation(theOntology, inconsistentAnn));
+			man.applyChange(new RemoveOntologyAnnotation(theOntology, consistentAnn));		
+			man.applyChange(new AddOntologyAnnotation(theOntology, consistencyStatus));
+		}
+		catch (NullPointerException n) {
+			System.out.println("No ranking to save to file: perhaps TBox is inconsistent so no ranking can be computed.");
+			
+			Set<OWLAxiom> axioms = theOntology.getAxioms();
+			for (OWLAxiom a: axioms) {
 				Set<OWLAnnotation> annos = a.getAnnotations();
-				Set<OWLAnnotation> newAnnos = new HashSet<OWLAnnotation>();
-				for (OWLAnnotation an: annos){
-					if (!an.getProperty().equals(u.rankAnnotationProperty)){
-						newAnnos.add(an);
+				Set<OWLAnnotation> finalAnnos = new HashSet<OWLAnnotation>();
+				boolean hasRankAnno = false;
+				for (OWLAnnotation ann: annos) {
+					if (!ann.getProperty().equals(u.rankAnnotationProperty)) {
+						finalAnnos.add(ann);
+					}
+					else {
+						hasRankAnno = true;
 					}
 				}
-
-				OWLAxiom aTmp = a.getAxiomWithoutAnnotations();
-				OWLAnnotation anno = getOWLModelManager().getOWLDataFactory().getOWLAnnotation(u.rankAnnotationProperty, getOWLModelManager().getOWLDataFactory().getOWLLiteral(rank.getIndex()));
-				newAnnos.add(anno);    			
-				man.removeAxiom(theOntology, a);
-				man.addAxiom(theOntology, aTmp.getAnnotatedAxiom(newAnnos));    			
+				
+				if (hasRankAnno) {
+					OWLAxiom bareAx = a.getAxiomWithoutAnnotations();
+					OWLAxiom newAx = bareAx.getAnnotatedAxiom(finalAnnos);
+					man.removeAxiom(theOntology, a);
+					man.addAxiom(theOntology, newAx);
+				}
+				
 			}
-			//count--;
 		}
-
-		// save ontology consistency status
-		OWLAnnotation consistencyStatus = null;
-		OWLDataFactory df = getOWLModelManager().getOWLDataFactory();
-		OWLAnnotation inconsistentAnn = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(false));
-		OWLAnnotation consistentAnn = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(true));
-		
-		if (isConsistent) {
-			consistencyStatus = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(true));
-		}
-		else {
-			consistencyStatus = df.getOWLAnnotation(u.consistencyAnnotationProperty, df.getOWLLiteral(false));
-		}
-		man.applyChange(new RemoveOntologyAnnotation(theOntology, inconsistentAnn));
-		man.applyChange(new RemoveOntologyAnnotation(theOntology, consistentAnn));		
-		man.applyChange(new AddOntologyAnnotation(theOntology, consistencyStatus));
 	}
 
 	private boolean ontHasConsistencyAnnotation() {
@@ -417,57 +458,79 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 	}
 
 	private void doQuery() {
+
+		// Clear results
 		resultsList.clear();
+
 		try {
 			// If ranking needs to be recomputed
 			if (requiresRefresh || !ontHasConsistencyAnnotation()) {
-				System.out.println("REQUIRES REFRESH OR DOES NOT HAVE CONSISTENCY ANNO");
+				System.out.println();
+				System.out.println("RECOMPUTING RANKING");
+				System.out.println();
 				computeRanking();
-				saveRanking();
+				if (isTBoxConsistent)
+					saveRanking();
 			}
 
+			// If TBox is preferentially consistent
 			if (isTBoxConsistent) {
+				System.out.println();
 				System.out.println("IS TBOX CONSISTENT");
-				//System.out.println("3");
-				OWLReasonerManager reasonerManager = getOWLModelManager().getOWLReasonerManager();         	
-				OWLClassExpression desc = owlDescriptionEditor.createObject();
+
+				// Sanity check: print ranking
+				System.out.println();
+				System.out.println("Ranking:");
+				System.out.println(ranking);
+				System.out.println();
 
 				// First check preferential consistency. At this point we know for sure that the ontology is NOT TBox inconsistent.
-				System.out.println(ranking);
+				OWLReasonerManager reasonerManager = getOWLModelManager().getOWLReasonerManager();         	
+				OWLClassExpression desc = owlDescriptionEditor.createObject();
 				DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(reasonerManager.getCurrentReasonerFactory().getReasonerFactory(), ranking);
 				boolean ontologyConsistent = dic.isConsistent(ranking);
-				//System.out.println("4");
+
+				// If the ontology as a whole is consistent (including ABox if applicable)
 				if (ontologyConsistent) {  
+					System.out.println();
 					System.out.println("IS PREFERENTIALLY CONSISTENT");
-					//System.out.println("5");
+					System.out.println();
+
 					isConsistent = true;
+
+					// If I have a valid query (class expression)
 					if (desc != null){
-						//System.out.println("6");
 						OWLExpressionUserCache.getInstance(getOWLModelManager()).add(desc, owlDescriptionEditor.getText());
 						ReasoningType algorithm = ReasoningType.NAME_TYPE_MAP.get((String)reasoningList.getSelectedItem());
-						resultsList.setOWLClassExpression(desc, algorithm, ranking);
-						//System.out.println("got here2");
+						// compute all super classes and instances for the given class expression
+						resultsList.setOWLClassExpression(desc, algorithm, ranking, eTransforms);
 					}
 				}
 				else {
-					//System.out.println("7");
+					// The TBox is preferentially consistent but when we add the ABox then it becomes preferentially inconsistent
 					isConsistent = false;
 					System.out.println("Ontology is ABox inconsistent!");
 					JOptionPane.showMessageDialog(null, "The Individual assertions in your ontology conflict with the Class axioms.\n DIP will no longer be able to make useful inferences about this ontology.\n Please check your assertions and class definitions.", "DIP: Inconsistent Ontology Warning", JOptionPane.WARNING_MESSAGE);
 				}
 			}
+			else {
+				requiresRefresh = true;
+			}
 		}
 		catch (OWLException e) {
-			//System.out.println("!!8!!");
-			System.out.println("Exception caught trying to do the query.");
+			System.out.println("Exception when executing query.");
 			e.printStackTrace();
 		}
 	}
 
 	private void computeRanking() throws InconsistentOntologyException{
 		try {
+			// Compute ranking
 			RationalRankingAlgorithm rankingalg = new RationalRankingAlgorithm(getOWLEditorKit().getModelManager().getOWLReasonerManager().getCurrentReasonerFactory().getReasonerFactory(), getOWLModelManager().getActiveOntology());
 			ranking = rankingalg.computeRanking();
+			// Collect E_0, E_1,  ... , E_n
+			eTransforms = rankingalg.getETransforms();
+			// Render the ranking in the exceptions panel 
 			exceptionsList.setExceptionsList(ranking);
 		} catch (OWLOntologyCreationException e) {
 			System.out.println("Ontology creation exception.");
@@ -476,8 +539,11 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 			System.out.println("Error computing ranking.");
 			e.printStackTrace();
 		}
-		catch (InconsistentOntologyException e) {//This can only mean TBox inconsistency "A or not A SubClassOf Nothing"
+		catch (InconsistentOntologyException e) {
+			//This can only mean TBox inconsistency e.g. "A or not A SubClassOf Nothing"
 			// TBox inconsistency
+			exceptionsList.clear();
+			resultsList.clear();
 			isTBoxConsistent = false;
 			requiresRefresh = true;
 			System.out.println("Ontology is TBox inconsistent!");
@@ -485,19 +551,16 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 		}
 		finally {
 			if (isTBoxConsistent) {
+				System.out.println("isTBoxConsistent.");
 				requiresRefresh = false;
 				isConsistent = true;
 			}
 			else {
+				System.out.println("isTBox IN Consistent.");
 				requiresRefresh = true;
 				isConsistent = false;
 			}
 		}
-	
-		System.out.println();
-    	System.out.println("Ranking !!!2!!!: ");
-    	System.out.println(ranking);
-    	System.out.println();
 	}
 
 	private void doAdd() {

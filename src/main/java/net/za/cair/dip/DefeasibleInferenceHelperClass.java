@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.paukov.combinatorics3.Generator;
+import org.semanticweb.HermiT.Configuration;
+import org.semanticweb.HermiT.Reasoner;
 import org.semanticweb.owl.explanation.api.Explanation;
 import org.semanticweb.owl.explanation.api.ExplanationGenerator;
 import org.semanticweb.owl.explanation.api.ExplanationGeneratorFactory;
@@ -117,6 +119,16 @@ public class DefeasibleInferenceHelperClass {
 		hsTreeSize = 0;
 	}
 	
+	public DefeasibleInferenceHelperClass(OWLReasonerFactory reasonerFactory){
+		this.reasonerFactory = reasonerFactory;
+		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
+		this.problematicRank = null;
+		this.cBasisValid = false;
+		this.sizeOfCCompat = 0;
+		this.antecedentHasInfiniteRank = false;
+		this.antecedentIsNonExceptional = false;
+	}
+	
 	private Ranking setRanking(Ranking r){
 		ArrayList<Rank> ranks = new ArrayList<Rank>();
 		ArrayList<Rank> result = new ArrayList<Rank>();
@@ -139,6 +151,17 @@ public class DefeasibleInferenceHelperClass {
 	}
 	
 	
+	
+	public OWLClassExpression getE_i(Ranking rankingTmp, int i) {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		for (Rank r: rankingTmp.getRanking()) {
+			if (r.getIndex() >= i) {
+				axioms.addAll(r.getAxioms());
+			}
+		}
+		OWLClassExpression tmp = getInternalisation(axioms);
+		return tmp;
+	}
 	
 	
 	private Set<OWLAxiom> getMinimallyRanked(Set<OWLAxiom> axioms){
@@ -630,6 +653,7 @@ public class DefeasibleInferenceHelperClass {
 		tmpOntology = ontologyManager.createOntology(backgroundKnwldge);
 		
 		// Initialise reasoner with <T>
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
 		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		
 		// Calculate internalisation of ranks + antecedent of query

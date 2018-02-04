@@ -27,6 +27,7 @@ import net.za.cair.dip.util.Utility;
 import org.protege.editor.core.ui.util.ComponentFactory;
 import org.protege.editor.core.ui.util.InputVerificationStatusChangedListener;
 import org.protege.editor.owl.model.classexpression.OWLExpressionParserException;
+import org.protege.editor.owl.model.inference.OWLReasonerManager;
 import org.protege.editor.owl.ui.clsdescriptioneditor.ExpressionEditor;
 import org.protege.editor.owl.ui.clsdescriptioneditor.OWLExpressionChecker;
 import org.protege.editor.owl.ui.view.AbstractOWLViewComponent;
@@ -325,7 +326,8 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
         JComponent resultsPanel = new JPanel(new BorderLayout());
         resultsPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
                  Color.LIGHT_GRAY), "Exceptions"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));                
-        exceptionRanking = new ExceptionsList(getOWLEditorKit());
+        OWLReasonerManager reasonerManager = getOWLModelManager().getOWLReasonerManager();
+		exceptionRanking = new ExceptionsList(getOWLEditorKit(), getOWLModelManager().getOWLDataFactory(), reasonerManager.getCurrentReasonerFactory().getReasonerFactory());
         
         resultsPanel.add(ComponentFactory.createScrollPane(exceptionRanking));       
         return resultsPanel;

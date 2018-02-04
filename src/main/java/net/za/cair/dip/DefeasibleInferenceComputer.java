@@ -1,10 +1,16 @@
 package net.za.cair.dip;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.paukov.combinatorics3.Generator;
+import org.semanticweb.HermiT.Configuration;
+import org.semanticweb.HermiT.Reasoner;
 //import org.semanticweb.owl.explanation.impl.blackbox.hst.HittingSetTree;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
@@ -13,11 +19,14 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLIndividual;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
+import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
@@ -25,6 +34,7 @@ import net.za.cair.dip.model.Query;
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.model.ReasoningType;
+import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
@@ -107,17 +117,21 @@ public class DefeasibleInferenceComputer {
 
 	private OWLDataFactory df;
 	private DefeasibleInferenceHelperClass helperClass;
+	private Set<Set<OWLAxiom>> multipleExtensions;
+	private Set<Set<OWLNamedIndividual>> multipleExtensionInstances;
+	private Set<OWLAxiom> singleExtension;
+	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 	
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory){ // NO_UCD (unused code)
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
 		this.reasonerFactory = reasonerFactory;		
-		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory, this.ranking);
+		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory);
 		this.ranking = null;
 	}
 	
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory, Ranking ranking){
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
-		this.ranking = setRanking(ranking);
+		this.ranking = ranking;
 		this.reasonerFactory = reasonerFactory;		
 		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory, this.ranking);
 		this.prunedRanking = null;
@@ -220,12 +234,270 @@ public class DefeasibleInferenceComputer {
 			return 0.0;
 		}
 	}*/
+
+	public boolean hasSingleABoxExtension(Ranking rankingTmp) throws OWLOntologyCreationException {
+		singleExtension = new HashSet<OWLAxiom>();
+		/** Procedure: RationalExtension(K) */
+		// Get all individuals and ABox axioms
+		ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
+		Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+		for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
+			if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+				individuals.addAll(a.getIndividualsInSignature());
+				abox.add(a);
+			}
+		}
+		
+		int m = individuals.size();													// Number of individuals
+		int n = rankingTmp.size();													// Highest eTransform index
+		int j = 0;																	// Line 1
+		Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+		do {																		// Line 3
+			int i = 1;																// Line 4
+			OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
+			//System.out.println("a: " + currAssertion);
+			while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {	// Line 5
+				i++;																// Line 6
+				currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
+				//System.out.println("b: "  + currAssertion);
+			}
+			if (i <= n)																// Line 7
+				abox_D.add(currAssertion);											// Line 8
+			j++;																	// Line 9
+		} while (j < m);															// Line 10
+		
+		// If resulting abox_D is consistent then this is the only abox extension
+		if (isConsistent(abox_D, rankingTmp)) {
+			// assign abox_D to global variable (ABox extension)
+			singleExtension.addAll(abox_D);
+			//System.out.println(singleExtension);
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 	
+	private Set<OWLAxiom> getABoxExtension(Ranking rkg, List<OWLIndividual> sequence) throws OWLOntologyCreationException{
+		/** Procedure: RationalExtension(K) */
+		// Get ABox axioms
+		Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+		for (OWLAxiom a: rkg.getInfiniteRank().getAxioms()) {
+			if (a.isOfType(AxiomType.ABoxAxiomTypes))
+				abox.add(a);
+		}
+		
+		int m = sequence.size();													// Number of individuals
+		int n = rkg.size();															// Highest eTransform index
+		int j = 0;																	// Line 1
+		Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+		do {																		// Line 3
+			int i = 1;																// Line 4
+			OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
+			while ((!isConsistent(abox_D, currAssertion, rkg)) && (i <= n)) {		// Line 5
+				i++;																// Line 6
+				currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
+			}
+			if (i <= n)																// Line 7
+				abox_D.add(currAssertion);											// Line 8
+			j++;																	// Line 9
+		} while (j < m);															// Line 10
+		return abox_D;
+	}
+	
+	public void computeMultipleExtensions(Ranking rkg) throws OWLOntologyCreationException {
+		multipleExtensions = new HashSet<Set<OWLAxiom>>();
+		multipleExtensions.add(singleExtension);
+		
+		// Compute all possible sequences of individuals
+		// 1. Get all individuals in ABox
+		Set<OWLIndividual> individuals = new HashSet<OWLIndividual>();
+		for (OWLAxiom a: rkg.getInfiniteRank().getAxioms()) {
+			if (a.isOfType(AxiomType.ABoxAxiomTypes)) 
+				individuals.addAll(a.getIndividualsInSignature());
+		}
+		
+		// 2. Compute all sequences of individuals
+		ArrayList<List<OWLIndividual>> sequences = new ArrayList<List<OWLIndividual>>();
+		Iterator<List<OWLIndividual>> streamInd = Generator.permutation(individuals).simple().iterator();
+		Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
+		while (streamInd.hasNext()) {
+			List<OWLIndividual> currSequence = streamInd.next();
+			sequences.add(currSequence);
+		}
+		
+		// 3. Compute ABox extension for each sequence
+		for (List<OWLIndividual> seq: sequences) {
+			Set<OWLAxiom> extension = getABoxExtension(rkg, seq);
+			multipleExtensions.add(extension);
+		}
+	}
+	
+	public void computeMultipleExtensionInstances(Ranking rkg, OWLClassExpression cls) throws OWLOntologyCreationException{
+		multipleExtensionInstances = new HashSet<Set<OWLNamedIndividual>>();
+		
+		for (Set<OWLAxiom> extension: multipleExtensions) {
+			OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+			Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+			axioms.addAll(extension);															// A_s
+			axioms.addAll(rkg.getInfiniteRank().getAxiomsAsSet());								// T
+			OWLOntology tmpOntology = ontologyManager.createOntology(axioms);
+			OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+			multipleExtensionInstances.add(reasoner.getInstances(cls, false).getFlattened());
+		}
+		
+	}
+	
+	private Set<OWLNamedIndividual> getIntersection(Set<Set<OWLNamedIndividual>> sets) {
+
+	    Set<OWLNamedIndividual> firstSet = new HashSet<OWLNamedIndividual>();
+	    Set<Set<OWLNamedIndividual>> otherSets = new HashSet<Set<OWLNamedIndividual>>();
+	    
+	    int count = 0;
+	    for (Set<OWLNamedIndividual> s: sets) {
+	    	if (count == 0) {
+	    		firstSet.addAll(s);
+	    	}
+	    	else {
+	    		otherSets.add(s);
+	    	}
+	    	count++;
+	    }
+	    
+	    if (sets == null || sets.size() == 0)
+	        return new HashSet<OWLNamedIndividual>();
+
+	    Set<OWLNamedIndividual> intersection = new HashSet<OWLNamedIndividual>(firstSet);
+
+	    for (Set<OWLNamedIndividual> c : otherSets) {
+	        intersection.retainAll(c);
+	    }
+	    
+	    return intersection;
+	}
+	
+	public Set<OWLNamedIndividual> getPlausibleInstances(){
+		Set<OWLNamedIndividual> result = new HashSet<OWLNamedIndividual>();
+		for (Set<OWLNamedIndividual> setInd: multipleExtensionInstances)
+			result.addAll(setInd);
+		return result;
+	}
+	
+	public Set<OWLNamedIndividual> getDefiniteInstances(){
+		Set<Set<OWLNamedIndividual>> tmp = new HashSet<Set<OWLNamedIndividual>>();
+		for (Set<OWLNamedIndividual> setInd: multipleExtensionInstances)
+			tmp.add(setInd);
+		
+		return getIntersection(tmp);
+	}
+	
+	public Set<Set<OWLAxiom>> getMultipleExtensions(){
+		return multipleExtensions;
+	}
+	
+	public NodeSet<OWLNamedIndividual> getInstances(OWLClassExpression cls) throws OWLOntologyCreationException{
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		axioms.addAll(singleExtension);								// A_D
+		axioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());	// T
+
+		System.out.println();
+		System.out.println("ABOX EXTENSION + STRICT AXIOMS:");
+		System.out.println("-------------------------------");
+		for (OWLAxiom axom: axioms) {
+			System.out.println(man.render(axom));
+		}
+		System.out.println();
+
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);	
+		//Reasoner reasoner = new Reasoner(reasonerFactory, tmpOntology);
+		System.out.println();
+		System.out.println("ABOX EXTENSION + STRICT AXIOMS: (AFTER!)");
+		System.out.println("----------------------------------------");
+		for (OWLAxiom a: tmpOntology.getAxioms()) {
+			System.out.println(man.render(a));
+		}
+		System.out.println();
+
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+		//reasoner.flush();
+
+		/*Set<OWLNamedIndividual> individuals = new HashSet<OWLNamedIndividual>();
+
+			for (OWLAxiom a: axioms) {
+				if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+					individuals.addAll(a.getIndividualsInSignature());
+				}
+			}
+
+			for (OWLNamedIndividual ind: individuals) {
+				if (man.render(ind).equals("tweety3")) {
+					OWLAxiom testAx = df.getOWLClassAssertionAxiom(df.getOWLObjectComplementOf(cls), ind);
+					//OWLAxiom testAx = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLNothing());
+					ontologyManager.addAxiom(tmpOntology, testAx);
+					//System.out.print(man.render(testAx) + " : ");
+					//boolean r = reasoner.isEntailed(testAx);
+					//if (r)
+					//	System.out.println("true");
+					//else
+					//	System.out.println("false");
+				}
+			}
+
+			//System.out.println();
+			//System.out.println("Equivalent classes: " + reasoner.getEquivalentClasses(cls));
+			//System.out.println();
+
+			if (reasoner.isConsistent())
+				System.out.println("WTF");
+			else
+				System.out.println("WTF2");
+
+
+			reasoner.flush();*/
+		System.out.println();			
+		System.out.println("Class:");
+		System.out.println("------");
+		System.out.println(man.render(cls));
+		System.out.println();			
+		return reasoner.getInstances(cls, false);
+
+
+
+	}
+
 	public boolean isConsistent(Ranking ranking) throws OWLOntologyCreationException {
 		/**** Defeasible Ontology is Preferentially Inconsistent iff Infinite Rank is classically Inconsistent */		
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(ranking.getInfiniteRank().getAxiomsAsSet());	
-		OWLReasoner reasoner = reasonerFactory.createReasoner(tmpOntology);
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+		return reasoner.isConsistent();
+	}
+	
+	public boolean isConsistent(Set<OWLAxiom> abox, OWLAxiom assertion, Ranking ranking) throws OWLOntologyCreationException {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		axioms.addAll(abox);										// A_D
+		axioms.add(assertion);										// E_i(a_j)
+		axioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());	// T
+		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+		return reasoner.isConsistent();
+	}
+	
+	public boolean isConsistent(Set<OWLAxiom> abox, Ranking ranking) throws OWLOntologyCreationException {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		axioms.addAll(abox);										// A_D
+		axioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());	// T
+		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);	
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		return reasoner.isConsistent();
 	}
 	
@@ -454,7 +726,7 @@ public class DefeasibleInferenceComputer {
 		backgroundKnwldge.addAll(ranking.getInfiniteRank().getAxioms());		
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(backgroundKnwldge);	
-		OWLReasoner reasoner = reasonerFactory.createReasoner(tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		
 		/** Ranks in the ranking <D> */
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
@@ -554,7 +826,8 @@ public class DefeasibleInferenceComputer {
 		backgroundKnwldge.addAll(ranking.getInfiniteRank().getAxioms());
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(backgroundKnwldge);	
-		OWLReasoner reasoner = reasonerFactory.createReasoner(tmpOntology);
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		
 		/** Ranks in the ranking <D> */
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
@@ -615,6 +888,7 @@ public class DefeasibleInferenceComputer {
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(strictKnwldge);
 		
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
 		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		
 		strictSuperClasses = new HashSet<OWLClass>(reasoner.getSuperClasses(cls, false).getFlattened());
@@ -643,7 +917,9 @@ public class DefeasibleInferenceComputer {
 		}
 		
 		try{
-			typicalSuperClasses.remove(cls.asOWLClass());
+			if (!cls.isAnonymous()) {
+				typicalSuperClasses.remove(cls.asOWLClass());
+			}
 		}
 		catch (Exception e){
 			System.out.println("Not an OWL Class!");
@@ -728,5 +1004,13 @@ public class DefeasibleInferenceComputer {
 
 			return helperClass.getInternalisation(cCompatibleRanks);
 		}	 	
+	}
+	
+	public Set<OWLAxiom> getSingleExtension(){
+		return singleExtension;
+	}
+	
+	public Ranking getRanking(){
+		return ranking;
 	}
 }
