@@ -221,7 +221,7 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 		//resultsList.setShowSubClasses(true);
 		JComponent mainResultPanel = new JPanel(new GridLayout(1,1));
 		mainResultPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
-				Color.LIGHT_GRAY), "Super Classes"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
+				Color.LIGHT_GRAY), "Super Classes & Instances"), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
 		mainResultPanel.add(ComponentFactory.createScrollPane(resultsList));
 		resultsPanel.add(mainResultPanel, BorderLayout.CENTER);
 		return resultsPanel;

@@ -2,7 +2,6 @@ package net.za.cair.dip.ui.view;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -21,16 +20,8 @@ import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
 
-import org.semanticweb.HermiT.Configuration;
-import org.semanticweb.HermiT.Reasoner;
-import org.semanticweb.owl.explanation.api.Explanation;
-import org.semanticweb.owl.explanation.api.ExplanationGenerator;
-import org.semanticweb.owl.explanation.api.ExplanationGeneratorFactory;
-import org.semanticweb.owl.explanation.api.ExplanationManager;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
-import org.mindswap.pellet.jena.PelletReasoner;
-import org.mindswap.pellet.jena.PelletReasonerFactory;
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
 import org.protege.editor.owl.OWLEditorKit;
@@ -49,8 +40,6 @@ import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.reasoner.Node;
-import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 
