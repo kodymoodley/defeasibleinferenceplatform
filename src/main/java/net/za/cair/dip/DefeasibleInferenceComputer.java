@@ -120,6 +120,10 @@ public class DefeasibleInferenceComputer {
 	private Set<Set<OWLAxiom>> multipleExtensions;
 	private Set<Set<OWLNamedIndividual>> multipleExtensionInstances;
 	private Set<OWLAxiom> singleExtension;
+	private ArrayList<OWLClassExpression> lexicographicRanking;
+	private Set<OWLAxiom> global_inconsBasis;
+	private Set<OWLAxiom> global_minInconsBasis;
+	
 	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 	
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory){ // NO_UCD (unused code)
@@ -219,66 +223,347 @@ public class DefeasibleInferenceComputer {
 		result.setInfiniteRank(new Rank(newInfRankAxioms));
 		return result;
 	}
-	
-	/*private double getAvgRankSize(Ranking ranking){
-		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
-		for (Rank rank: ranking.getRanking()){
-			axioms.addAll(rank.getAxioms());
-		}
-		
-		if (ranking.size() > 0){
-			double rSize = (double)ranking.size();
-			return axioms.size()/rSize;
-		}
-		else{
-			return 0.0;
-		}
-	}*/
 
-	public boolean hasSingleABoxExtension(Ranking rankingTmp) throws OWLOntologyCreationException {
-		singleExtension = new HashSet<OWLAxiom>();
-		/** Procedure: RationalExtension(K) */
-		// Get all individuals and ABox axioms
-		ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
-		Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
-		for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
-			if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
-				individuals.addAll(a.getIndividualsInSignature());
-				abox.add(a);
+	private void computeLexicographicRanking(Ranking tmpRanking) {
+		// Initialize variable
+		lexicographicRanking = new ArrayList<OWLClassExpression>(); 
+		// Get hold of an OWLDataFactory to construct class expressions from OWL boolean operators
+		OWLDataFactory dataF = OWLManager.createOWLOntologyManager().getOWLDataFactory();
+		
+		// Set rank index to 1 (first level)
+		int rankIndex = 1;
+		
+		// Done: we have run through all ranks
+		boolean done = false;
+		
+		// While not done
+		while (!done) {
+			// If we have run through all ranks, set done to true
+			if (rankIndex > tmpRanking.size()) {
+				done = true;
+			}
+			else {
+				// Get current rank
+				Rank currRank = null; 
+				for (Rank r: tmpRanking.getRanking()) {
+					if (r.getIndex() == rankIndex) {
+						currRank = r;
+					}
+				}
+				
+				// Get conjunction of materialisations for all axioms up to and including this rank
+				OWLClassExpression fullCls = helperClass.getE_i(tmpRanking, rankIndex);
+				// and add it to our lexicographic ranking set of class expressions
+				lexicographicRanking.add(fullCls);
+		
+				OWLClassExpression fullClsPrev = null;
+				// If there is another rank after this
+				if (rankIndex+1 <= tmpRanking.size()) {
+					// Get the conjunction of materialisations for up to and EXCLUDING this rank
+					fullClsPrev = helperClass.getE_i(tmpRanking, rankIndex+1);
+					
+					// Loop through number of axioms in this rank (from highest to lowest number)
+					for (int k = currRank.getAxioms().size()-1; k > 0; k--) {
+						// Get all combinations of k axioms
+						Iterator<List<OWLAxiom>> streamAx = Generator.combination(currRank.getAxioms()).simple(k).iterator();
+
+						// Now construct disjunctions of conjunctions of these axioms 
+						Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
+						while (streamAx.hasNext()) {
+							List<OWLAxiom> currCombination = streamAx.next();
+							Set<OWLAxiom> setCurrCombination = new HashSet<OWLAxiom>();
+							setCurrCombination.addAll(currCombination);
+							OWLClassExpression tmp = helperClass.getInternalisation(setCurrCombination);
+							disjuncts.add(tmp);
+						}
+
+						// Construct class expression from disjunctions of conjunctions of axioms
+						OWLClassExpression currComb = dataF.getOWLObjectUnionOf(disjuncts);
+						OWLClassExpression currCombFinal = dataF.getOWLObjectIntersectionOf(currComb, fullClsPrev);
+						// add it to the lexicographic ranking set of class expressions
+						lexicographicRanking.add(currCombFinal);
+					}
+				}
+			
+				// Now go to the next level of the ranking
+				rankIndex++;
 			}
 		}
 		
-		int m = individuals.size();													// Number of individuals
-		int n = rankingTmp.size();													// Highest eTransform index
-		int j = 0;																	// Line 1
-		Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
-		do {																		// Line 3
-			int i = 1;																// Line 4
-			OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
-			//System.out.println("a: " + currAssertion);
-			while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {	// Line 5
-				i++;																// Line 6
-				currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
-				//System.out.println("b: "  + currAssertion);
-			}
-			if (i <= n)																// Line 7
-				abox_D.add(currAssertion);											// Line 8
-			j++;																	// Line 9
-		} while (j < m);															// Line 10
+		System.out.println();
+		System.out.println("Lexicographic Ranking:");
+		System.out.println("----------------------");
 		
-		// If resulting abox_D is consistent then this is the only abox extension
-		if (isConsistent(abox_D, rankingTmp)) {
-			// assign abox_D to global variable (ABox extension)
-			singleExtension.addAll(abox_D);
-			//System.out.println(singleExtension);
-			return true;
+		for (int l = 0; l < lexicographicRanking.size();l++) {
+			System.out.println(man.render(lexicographicRanking.get(l)));
+			System.out.println();
+		}
+		System.out.println();
+	}
+	
+	public boolean hasSingleABoxExtension(Ranking rankingTmp, ReasoningType reasoning_algorithm) throws OWLOntologyCreationException {
+		global_inconsBasis = new HashSet<OWLAxiom>();
+		global_minInconsBasis = new HashSet<OWLAxiom>();
+		
+		if (reasoning_algorithm.equals(ReasoningType.RATIONAL)) {
+			singleExtension = new HashSet<OWLAxiom>();
+			/** Procedure: RationalExtension(K) */
+			// Get all individuals and ABox axioms
+			ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
+			Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+			for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+					individuals.addAll(a.getIndividualsInSignature());
+					abox.add(a);
+				}
+			}
+
+			int m = individuals.size();													// Number of individuals
+			int n = rankingTmp.size();													// Highest eTransform index
+			int j = 0;																	// Line 1
+			Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+			do {																		// Line 3
+				int i = 1;																// Line 4
+				OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
+				//System.out.println("a: " + currAssertion);
+				while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {	// Line 5
+					i++;																// Line 6
+					currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
+					//System.out.println("b: "  + currAssertion);
+				}
+				if (i <= n)																// Line 7
+					abox_D.add(currAssertion);											// Line 8
+				j++;																	// Line 9
+			} while (j < m);															// Line 10
+
+			// If resulting abox_D is consistent then this is the only abox extension
+			if (isConsistent(abox_D, rankingTmp)) {
+				// assign abox_D to global variable (ABox extension)
+				singleExtension.addAll(abox_D);
+				//System.out.println(singleExtension);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (reasoning_algorithm.equals(ReasoningType.LEXICOGRAPHIC)) {
+			singleExtension = new HashSet<OWLAxiom>();
+			/** Procedure: RationalExtension(K) */
+			// Get all individuals and ABox axioms
+			ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
+			Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+			for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+					individuals.addAll(a.getIndividualsInSignature());
+					abox.add(a);
+				}
+			}
+
+			// computeLexicographicRanks (combinations of axioms for each rank)
+			computeLexicographicRanking(rankingTmp);
+
+			int m = individuals.size();													// Number of individuals
+			int n = lexicographicRanking.size()-1;										// Highest eTransform index
+			int j = 0;																	// Line 1
+			Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+			do {																		// Line 3
+				int i = 0;																// Line 4
+				OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(lexicographicRanking.get(i), individuals.get(j));
+				//System.out.println("a: " + currAssertion);
+				while ((!isConsistent(abox, currAssertion, rankingTmp.getInfiniteRank())) && (i <= n)) {	// Line 5
+					i++;																// Line 6
+					currAssertion = df.getOWLClassAssertionAxiom(lexicographicRanking.get(i), individuals.get(j));
+					//System.out.println("b: "  + currAssertion);
+				}
+				if (i <= n)																// Line 7
+					abox_D.add(currAssertion);											// Line 8
+				j++;																	// Line 9
+			} while (j < m);															// Line 10
+
+			// If resulting abox_D is consistent then this is the only abox extension
+			if (isConsistent(abox_D, rankingTmp.getInfiniteRank())) {
+				// assign abox_D to global variable (ABox extension)
+				singleExtension.addAll(abox_D);
+
+				System.out.println();
+				System.out.println("Single Extension:");
+				System.out.println("-----------------");
+				for (OWLAxiom a: singleExtension) {
+					System.out.println(man.render(a));
+				}
+				System.out.println();
+
+				//System.out.println(singleExtension);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (reasoning_algorithm.equals(ReasoningType.RELEVANT)) {
+			// Basic Relevance Closure
+			singleExtension = new HashSet<OWLAxiom>();
+			/** Procedure: RationalExtension(K) */
+			// Get all individuals and ABox axioms
+			ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
+			Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+			for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+					individuals.addAll(a.getIndividualsInSignature());
+					abox.add(a);
+				}
+			}
+			
+			// compute inconsistency basis
+			global_inconsBasis = helperClass.getInconsistencyBasis();
+			
+			System.out.println();
+			System.out.println("Inconsistency Basis:");
+			System.out.println("--------------------");
+			for (OWLAxiom a: global_inconsBasis) {
+				System.out.println(man.render(a));
+			}
+			System.out.println();
+
+			// if ontology is not inconsistent then there are no instances of exceptional or unsatisfiable classes
+			// then we can just ask for instances of this class expression directly from classical reasoner
+
+			if (global_inconsBasis.isEmpty()) {
+				int m = individuals.size();													// Number of individuals
+				int n = rankingTmp.size();													// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3															
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, 1), individuals.get(j));
+					if (isConsistent(abox, currAssertion, rankingTmp))						// Line 5																														
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+
+				// If resulting abox_D is consistent then this is the only abox extension
+				if (isConsistent(abox_D, rankingTmp)) {
+					// assign abox_D to global variable (ABox extension)
+					singleExtension.addAll(abox_D);
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+			else {
+				
+				// ontology is inconsistent so it has a non-empty inconsistency-basis
+				int m = individuals.size();													// Number of individuals
+				int n = rankingTmp.size();													// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3
+					int i = 1;																// Line 4
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i, global_inconsBasis), individuals.get(j));
+					while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {		// Line 5
+						i++;																// Line 6
+						currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i, global_inconsBasis), individuals.get(j));
+					}
+					if (i <= n)																// Line 7
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+
+				// If resulting abox_D is consistent then this is the only abox extension
+				if (isConsistent(abox_D, rankingTmp)) {
+					// assign abox_D to global variable (ABox extension)
+					singleExtension.addAll(abox_D);
+					
+					System.out.println();
+					System.out.println("Single Extension:");
+					System.out.println("-----------------");
+					for (OWLAxiom a: singleExtension) {
+						System.out.println(man.render(a));
+					}
+					System.out.println();
+					
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
 		}
 		else {
-			return false;
+			// Minimal Relevance Closure
+			singleExtension = new HashSet<OWLAxiom>();
+			/** Procedure: RationalExtension(K) */
+			// Get all individuals and ABox axioms
+			ArrayList<OWLIndividual> individuals = new ArrayList<OWLIndividual>();
+			Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
+			for (OWLAxiom a: rankingTmp.getInfiniteRank().getAxioms()) {
+				if (a.isOfType(AxiomType.ABoxAxiomTypes)) {
+					individuals.addAll(a.getIndividualsInSignature());
+					abox.add(a);
+				}
+			}
+			
+			// compute MINIMAL inconsistency basis
+			global_minInconsBasis = helperClass.getMinInconsistencyBasis();
+
+			// if ontology is not inconsistent then there are no instances of exceptional or unsatisfiable classes
+			// then we can just ask for instances of this class expression directly from classical reasoner
+
+			if (global_minInconsBasis.isEmpty()) {
+				int m = individuals.size();													// Number of individuals
+				int n = rankingTmp.size();													// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3															
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, 1), individuals.get(j));
+					if (isConsistent(abox, currAssertion, rankingTmp))						// Line 5																														
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+
+				// If resulting abox_D is consistent then this is the only abox extension
+				if (isConsistent(abox_D, rankingTmp)) {
+					// assign abox_D to global variable (ABox extension)
+					singleExtension.addAll(abox_D);
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+			else {
+				// ontology is inconsistent so it has a non-empty inconsistency-basis
+				int m = individuals.size();													// Number of individuals
+				int n = rankingTmp.size();													// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3
+					int i = 1;																// Line 4
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i, global_minInconsBasis), individuals.get(j));
+					while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {	// Line 5
+						i++;																// Line 6
+						currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i, global_minInconsBasis), individuals.get(j));
+					}
+					if (i <= n)																// Line 7
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+
+				// If resulting abox_D is consistent then this is the only abox extension
+				if (isConsistent(abox_D, rankingTmp)) {
+					// assign abox_D to global variable (ABox extension)
+					singleExtension.addAll(abox_D);
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
 		}
 	}
 	
-	private Set<OWLAxiom> getABoxExtension(Ranking rkg, List<OWLIndividual> sequence) throws OWLOntologyCreationException{
+	private Set<OWLAxiom> getABoxExtension(Ranking rkg, List<OWLIndividual> sequence, ReasoningType algorithm) throws OWLOntologyCreationException{
 		/** Procedure: RationalExtension(K) */
 		// Get ABox axioms
 		Set<OWLAxiom> abox = new HashSet<OWLAxiom>();
@@ -286,26 +571,111 @@ public class DefeasibleInferenceComputer {
 			if (a.isOfType(AxiomType.ABoxAxiomTypes))
 				abox.add(a);
 		}
-		
-		int m = sequence.size();													// Number of individuals
-		int n = rkg.size();															// Highest eTransform index
-		int j = 0;																	// Line 1
-		Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
-		do {																		// Line 3
-			int i = 1;																// Line 4
-			OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
-			while ((!isConsistent(abox_D, currAssertion, rkg)) && (i <= n)) {		// Line 5
-				i++;																// Line 6
-				currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
+
+		if (algorithm.equals(ReasoningType.RATIONAL)) {
+			int m = sequence.size();													// Number of individuals
+			int n = rkg.size();															// Highest eTransform index
+			int j = 0;																	// Line 1
+			Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+			do {																		// Line 3
+				int i = 1;																// Line 4
+				OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
+				while ((!isConsistent(abox_D, currAssertion, rkg)) && (i <= n)) {		// Line 5
+					i++;																// Line 6
+					currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i), sequence.get(j));
+				}
+				if (i <= n)																// Line 7
+					abox_D.add(currAssertion);											// Line 8
+				j++;																	// Line 9
+			} while (j < m);															// Line 10
+			return abox_D;
+		}
+		else if (algorithm.equals(ReasoningType.LEXICOGRAPHIC)) {
+			int m = sequence.size();													// Number of individuals
+			int n = lexicographicRanking.size() - 1;									// Highest eTransform index
+			int j = 0;																	// Line 1
+			Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+			do {																		// Line 3
+				int i = 0;																// Line 4
+				OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(lexicographicRanking.get(i), sequence.get(j));
+				while ((!isConsistent(abox_D, currAssertion, rkg.getInfiniteRank())) && (i <= n)) {		// Line 5
+					if (i < lexicographicRanking.size())
+						currAssertion = df.getOWLClassAssertionAxiom(lexicographicRanking.get(i), sequence.get(j));
+				}
+				if (i <= n)																// Line 7
+					abox_D.add(currAssertion);											// Line 8
+				j++;																	// Line 9
+			} while (j < m);															// Line 10
+			return abox_D;
+		}
+		else if (algorithm.equals(ReasoningType.RELEVANT)) {
+			if (global_inconsBasis.isEmpty()) {
+				int m = sequence.size();													// Number of individuals
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3															
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, 1), sequence.get(j));
+					if (isConsistent(abox_D, currAssertion, rkg))						// Line 5																														
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+				return abox_D;
 			}
-			if (i <= n)																// Line 7
-				abox_D.add(currAssertion);											// Line 8
-			j++;																	// Line 9
-		} while (j < m);															// Line 10
-		return abox_D;
+			else {
+				int m = sequence.size();													// Number of individuals
+				int n = rkg.size();															// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3
+					int i = 1;																// Line 4
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i, global_inconsBasis), sequence.get(j));
+					while ((!isConsistent(abox_D, currAssertion, rkg)) && (i <= n)) {		// Line 5
+						i++;																// Line 6
+						currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i, global_inconsBasis), sequence.get(j));
+					}
+					if (i <= n)																// Line 7
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+				return abox_D;
+			}
+		}
+		else {
+			// Minimal Relevance Closure
+			if (global_minInconsBasis.isEmpty()) {
+				int m = sequence.size();													// Number of individuals
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3															
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, 1), sequence.get(j));
+					if (isConsistent(abox_D, currAssertion, rkg))						// Line 5																														
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+				return abox_D;
+			}
+			else {
+				int m = sequence.size();													// Number of individuals
+				int n = rkg.size();															// Highest eTransform index
+				int j = 0;																	// Line 1
+				Set<OWLAxiom> abox_D = new HashSet<OWLAxiom>();	abox_D.addAll(abox);		// Line 2
+				do {																		// Line 3
+					int i = 1;																// Line 4
+					OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i, global_minInconsBasis), sequence.get(j));
+					while ((!isConsistent(abox_D, currAssertion, rkg)) && (i <= n)) {		// Line 5
+						i++;																// Line 6
+						currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rkg, i, global_minInconsBasis), sequence.get(j));
+					}
+					if (i <= n)																// Line 7
+						abox_D.add(currAssertion);											// Line 8
+					j++;																	// Line 9
+				} while (j < m);															// Line 10
+				return abox_D;
+			}
+		}
 	}
 	
-	public void computeMultipleExtensions(Ranking rkg) throws OWLOntologyCreationException {
+	public void computeMultipleExtensions(Ranking rkg, ReasoningType algorithm) throws OWLOntologyCreationException {
 		multipleExtensions = new HashSet<Set<OWLAxiom>>();
 		multipleExtensions.add(singleExtension);
 		
@@ -320,7 +690,6 @@ public class DefeasibleInferenceComputer {
 		// 2. Compute all sequences of individuals
 		ArrayList<List<OWLIndividual>> sequences = new ArrayList<List<OWLIndividual>>();
 		Iterator<List<OWLIndividual>> streamInd = Generator.permutation(individuals).simple().iterator();
-		Set<OWLClassExpression> disjuncts = new HashSet<OWLClassExpression>();
 		while (streamInd.hasNext()) {
 			List<OWLIndividual> currSequence = streamInd.next();
 			sequences.add(currSequence);
@@ -328,7 +697,7 @@ public class DefeasibleInferenceComputer {
 		
 		// 3. Compute ABox extension for each sequence
 		for (List<OWLIndividual> seq: sequences) {
-			Set<OWLAxiom> extension = getABoxExtension(rkg, seq);
+			Set<OWLAxiom> extension = getABoxExtension(rkg, seq, algorithm);
 			multipleExtensions.add(extension);
 		}
 	}
@@ -484,6 +853,33 @@ public class DefeasibleInferenceComputer {
 		
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+		return reasoner.isConsistent();
+	}
+	
+	// Lexicographic Closure
+	public boolean isConsistent(Set<OWLAxiom> abox, OWLAxiom assertion, Rank infRank) throws OWLOntologyCreationException {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		axioms.addAll(abox);										// A_D
+		axioms.add(assertion);										// E_i(a_j)
+		axioms.addAll(infRank.getAxiomsAsSet());	// T
+		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);
+		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
+		return reasoner.isConsistent();
+	}
+	
+	// Lexicographic Closure
+	public boolean isConsistent(Set<OWLAxiom> abox, Rank infRank) throws OWLOntologyCreationException {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		axioms.addAll(abox);										// A_D
+		axioms.addAll(infRank.getAxiomsAsSet());	// T
+		
+		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
+		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);	
 		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
 		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
 		return reasoner.isConsistent();
@@ -938,7 +1334,7 @@ public class DefeasibleInferenceComputer {
 		return new ArrayList<OWLClass>();
 	}
 	
-	public OWLClassExpression getCCompatibility(OWLClassExpression cls, ReasoningType algorithm, Ranking ranking) throws OWLOntologyCreationException{		
+	public OWLClassExpression getCCompatibility(OWLClassExpression cls, ReasoningType algorithm, Ranking ranking) throws OWLOntologyCreationException{	
 		ArrayList<Rank> cCompatibleRanks = new ArrayList<Rank>();	
 		ArrayList<Rank> ranks = new ArrayList<Rank>();ranks.addAll(ranking.getRanking());
 		
@@ -993,7 +1389,7 @@ public class DefeasibleInferenceComputer {
 			System.out.println();
 			System.out.println("Minimal Relevant Closure");
 			System.out.println();
-			Set<OWLAxiom> cbasis = helperClass.getMinCBasis(cls);			 
+			Set<OWLAxiom> cbasis = helperClass.getMinCBasis(cls);		
 			ArrayList<Rank> mrCCompatibleRanks = helperClass.getMRCCompatibleSubset(ranks, cls, cbasis);			
 			return helperClass.getInternalisation(mrCCompatibleRanks);
 		}
@@ -1012,5 +1408,13 @@ public class DefeasibleInferenceComputer {
 	
 	public Ranking getRanking(){
 		return ranking;
+	}
+	
+	public Set<OWLAxiom> getInconsBasis(){
+		return global_inconsBasis;
+	}
+	
+	public Set<OWLAxiom> getMinInconsBasis(){
+		return global_minInconsBasis;
 	}
 }

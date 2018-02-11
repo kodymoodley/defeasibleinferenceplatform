@@ -12,6 +12,7 @@ import org.semanticweb.owl.explanation.api.Explanation;
 import org.semanticweb.owl.explanation.api.ExplanationGenerator;
 import org.semanticweb.owl.explanation.api.ExplanationGeneratorFactory;
 import org.semanticweb.owl.explanation.api.ExplanationManager;
+import org.semanticweb.owl.explanation.impl.blackbox.checker.InconsistentOntologyExplanationGeneratorFactory;
 //import org.semanticweb.owl
 //import org.semanticweb.owl.explanation.api.Explanation;
 //import org.semanticweb.owl.explanation.api.ExplanationGenerator;
@@ -19,6 +20,7 @@ import org.semanticweb.owl.explanation.api.ExplanationManager;
 //import org.semanticweb.owl.explanation.api.ExplanationManager;
 //import org.semanticweb.owl.explanation.impl.blackbox.hst.HittingSetTree;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
@@ -93,7 +95,7 @@ public class DefeasibleInferenceHelperClass {
 	public int entailmentChecks;
 	public int justsEntailmentChecks;
 	
-	//private ManchesterOWLSyntaxOWLObjectRendererImpl renderer = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
     
 	public DefeasibleInferenceHelperClass(OWLReasonerFactory reasonerFactory, Ranking ranking){
 		this.reasonerFactory = reasonerFactory;
@@ -149,8 +151,17 @@ public class DefeasibleInferenceHelperClass {
 		
 		return finalResult;
 	}
-	
-	
+		
+	public OWLClassExpression getLexiE_i(Ranking rankingTmp, int i) {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		for (Rank r: rankingTmp.getRanking()) {
+			if (r.getIndex() >= i) {
+				axioms.addAll(r.getAxioms());
+			}
+		}
+		OWLClassExpression tmp = getInternalisation(axioms);
+		return tmp;
+	}
 	
 	public OWLClassExpression getE_i(Ranking rankingTmp, int i) {
 		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
@@ -161,6 +172,49 @@ public class DefeasibleInferenceHelperClass {
 		}
 		OWLClassExpression tmp = getInternalisation(axioms);
 		return tmp;
+	}
+	
+	public OWLClassExpression getE_i(Ranking rankingTmp, int i, Set<OWLAxiom> basis) {
+		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
+		
+		if (i == 1) {
+			return getInternalisation(rankingTmp.getAxiomsMinusInfiniteRank());
+		}
+		else {
+			for (Rank r: rankingTmp.getRanking()) {
+				if (r.getIndex() < i) {
+					Set<OWLAxiom> tmpAx = new HashSet<OWLAxiom>();tmpAx.addAll(r.getAxiomsAsSet());
+					tmpAx.removeAll(basis);
+					axioms.addAll(tmpAx);
+				}
+				
+				if (r.getIndex() >= i) {
+					axioms.addAll(r.getAxioms());
+				}
+			}
+			
+			return getInternalisation(axioms);
+		}
+		
+		/*System.out.println();
+		System.out.println("E" + (i-1) + " (after removing inconsBasis): ");
+		System.out.println("---------------------------");
+		for (OWLAxiom a: axioms) {
+			System.out.println(man.render(a));
+		}
+		System.out.println();
+		
+		System.out.println();
+		System.out.println("InconsBasis for E" + (i-1) + ": ");
+		System.out.println("-----------------------------------");
+		for (OWLAxiom a: basis) {
+			System.out.println(man.render(a));
+		}
+		System.out.println();
+	
+		//axioms.removeAll(basis);
+		OWLClassExpression tmp = getInternalisation(axioms);
+		return tmp;*/
 	}
 	
 	
@@ -852,6 +906,38 @@ public class DefeasibleInferenceHelperClass {
 		return result;
 	}
 	
+	public Set<OWLAxiom> getInconsistencyBasis() throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		InconsistentOntologyExplanationGeneratorFactory genFac = new InconsistentOntologyExplanationGeneratorFactory(reasonerFactory, 10000000);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxioms());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(ontology);
+		
+		if (reasoner.isConsistent()) {
+			return new HashSet<OWLAxiom>();
+		}
+		else {
+			// Create an actual explanation generator for our ontology using the factory
+			ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);
+
+			OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLNothing());
+			
+			// Get explanations for exceptionality
+			Set<Explanation<OWLAxiom>> expl = gen.getExplanations(entailment);
+			
+			// InconsBasis is the union of all justifications for inconsistency
+			Set<OWLAxiom> result = new HashSet<OWLAxiom>();
+			for (Explanation<OWLAxiom> exp: expl){
+				result.addAll(exp.getAxioms());
+			}
+			
+			// Return InconsBasis
+			return result;
+		}
+	}
+	
 	public Set<OWLAxiom> getMinCBasis(OWLClassExpression cls) throws OWLOntologyCreationException{
 		// Get hold of an explanation generator factory
 		ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
@@ -917,6 +1003,48 @@ public class DefeasibleInferenceHelperClass {
 		
 		// Return MinCBasis
 		return result;
+	}
+	
+	public Set<OWLAxiom> getMinInconsistencyBasis() throws OWLOntologyCreationException{
+		// Get hold of an explanation generator factory
+		InconsistentOntologyExplanationGeneratorFactory genFac = new InconsistentOntologyExplanationGeneratorFactory(reasonerFactory, 10000000);
+		// Create an ontology holding all the axioms in our ranking
+		Set<OWLAxiom> ontologyAxioms = new HashSet<OWLAxiom>();
+		ontologyAxioms.addAll(ranking.getAxioms());
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().createOntology(ontologyAxioms);
+		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(ontology);
+
+		if (reasoner.isConsistent()) {
+			return new HashSet<OWLAxiom>();
+		}
+		else {
+			// Create an actual explanation generator for our ontology using the factory
+			ExplanationGenerator<OWLAxiom> gen = genFac.createExplanationGenerator(ontology);	
+			OWLSubClassOfAxiom entailment = df.getOWLSubClassOfAxiom(df.getOWLThing(), df.getOWLNothing());
+			Set<OWLAxiom> result = new HashSet<OWLAxiom>(); //mincbasis
+			Set<OWLAxiom> result2 = new HashSet<OWLAxiom>(); //cbasis
+		
+			// Get explanations for inconsistency
+			Set<Explanation<OWLAxiom>> expl = null;
+			expl = gen.getExplanations(entailment);
+			
+			// MinInconsBasis is the union of all the minimally ranked
+			// axioms in each justification for the inconsistency
+			for (Explanation<OWLAxiom> exp: expl){
+				Set<OWLAxiom> tmp = new HashSet<OWLAxiom>();
+				tmp.addAll(exp.getAxioms());
+				result.addAll(getMinimallyRanked(tmp));
+				result2.addAll(tmp);
+			}
+			
+			mincbasisSize = result.size();
+			cbasisSize = result2.size();
+			cbasis = new HashSet<OWLAxiom>();
+			cbasis.addAll(result2);
+			
+			// Return MinInconsBasis
+			return result;
+		}
 	}
 	
 	public Set<OWLAxiom> getMinCBasis(OWLSubClassOfAxiom axiom) throws OWLOntologyCreationException{

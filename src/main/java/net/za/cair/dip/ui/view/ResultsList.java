@@ -221,7 +221,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     public void setOWLClassExpression(OWLClassExpression description, ReasoningType algorithm, Ranking ranking, ArrayList<ArrayList<OWLAxiom>> eTransforms) throws OWLOntologyCreationException {
     	List<Object> data = new ArrayList<Object>();
     	OWLDataFactory factory = owlEditorKit.getOWLModelManager().getOWLDataFactory();
-
+    	
     	// Super classes should be displayed
     	if (showSuperClasses) {
     		// Print class expression
@@ -293,7 +293,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     		DefeasibleInferenceComputer dic = new DefeasibleInferenceComputer(owlEditorKit.getModelManager().getOWLReasonerManager().getCurrentReasonerFactory().getReasonerFactory(), ranking);
 
     		// If this ontology has a single ABox extension
-    		if (dic.hasSingleABoxExtension(ranking)) {
+    		if (dic.hasSingleABoxExtension(ranking, algorithm)) {
     			System.out.println();
     			System.out.println("Single Extension");
     			System.out.println();
@@ -341,7 +341,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     			System.out.println();
     			
     			// Compute multiple ABox extensions
-    			dic.computeMultipleExtensions(ranking);
+    			dic.computeMultipleExtensions(ranking, algorithm);
     			// Compute instances of given class expression w.r.t. each ABox extension
     			dic.computeMultipleExtensionInstances(ranking, description);
     			// First get instances of given class expression that appear in ALL extensions (definite instances)
