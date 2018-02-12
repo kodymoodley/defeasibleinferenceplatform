@@ -1,6 +1,6 @@
 # DIP (Defeasible-Inference Platform) Plugin:
 
-A Protégé 5 plugin that enables users to specify defeasible subclass axioms and also compute the ``typical'' superclasses of a given class expression. The plugin is split into two parts: 1) the tab plugin (net.za.cair.dip.jar) and 2) a tiny extension of Protégé's editor plugin (protege-owl-editor.jar) that enables users to toggle subclass axioms to be defeasible.
+A Protégé 5 plugin that enables users to specify defeasible subclass axioms and compute "typical" superclasses and instances for a given class expression. The plugin is split into two parts: 1) the tab plugin (net.za.cair.dip.jar) and 2) a tiny extension of Protégé's editor plugin (protege-owl-editor.jar) that enables users to toggle subclass axioms to be defeasible.
 
 
 #### For Users: Installing and using the plugin
@@ -24,6 +24,7 @@ Steps:
 + To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
 + Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
 + We strongly recommend to use DIP in conjunction with the [HermiT](http://www.hermit-reasoner.com/) Protégé plugin for accurate results. 
++ DIP will only list **named** superclasses for the given class expression. E.g., if the ontology is about university students, and the given class expression is "Student and Employed some Company", then one might expect the typical superclass: "pays some TaxFee". However, DIP will **not** list this class. **TIP**: add an equivalence class axiom to the ontology e.g. "TaxPayer EquivalentTo pays some TaxFee". DIP will then be able to list "TaxPayer" as a typical superclass of "Student and Employed some Company".
 + **Note:** Theoretically, DIP can be used with any sound and complete reasoning implementation, but in practice reasoners differ in how they implement the OWLReasoner interface. For e.g., some reasoners will not update their inferences after an ontology changes unless the classify method is invoked explicitly. HermiT does not have this issue.
 
 #### For Developers: Building the tab plugin from source
