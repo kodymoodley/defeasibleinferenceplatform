@@ -2,7 +2,31 @@
 
 A Protégé 5 plugin that enables users to specify defeasible subclass axioms and also compute the ``typical'' superclasses of a given class expression. The plugin is split into two parts: 1) the tab plugin (net.za.cair.dip.jar) and 2) a tiny extension of Protégé's editor plugin (protege-owl-editor.jar) that enables users to toggle subclass axioms to be defeasible.
 
-#### Building the tab plugin from source
+
+#### For Users: Installing and using the plugin
+
+Requirements:
+
++ Protégé 5
++ Java 1.8
+
+Steps:
+
+1. Copy net.za.cair.dip-${version}.jar in this repository to the "plugins" subdirectory of your Protégé 5 distribution.
+
+2. Backup protege-editor-owl.jar from the "bundles" subdirectory of your Protégé 5 distribution.
+
+3. Replace your existing protege-editor-owl.jar in the "bundles" subdirectory of Protégé 5 with the protege-editor-owl-${version}.jar in this repository.
+ 
+#### Accessing plugin features in Protégé
+
++ Enable DIP tab via the Window | Tabs menu.
++ To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
++ Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
++ We strongly recommend to use DIP in conjunction with the [HermiT](http://www.hermit-reasoner.com/) Protégé plugin for accurate results. 
++ **Note:** Theoretically, DIP can be used with any sound and complete reasoning implementation, but in practice reasoners differ in how they implement the OWLReasoner interface. For e.g., some reasoners will not update their inferences after an ontology changes unless the classify method is invoked explicitly. HermiT does not have this issue.
+
+#### For Developers: Building the tab plugin from source
 
 Requirements:
 
@@ -18,29 +42,6 @@ Steps:
 2. Change into the defeasibleinferenceplatform directory.
 
 3. Type mvn clean package.  On build completion, the "target" directory will contain a net.za.cair.dip-${version}.jar file.
-
-#### Installation
-
-Requirements:
-
-+ Protégé 5
-+ Java 1.8
-
-Steps:
-
-1. Copy net.za.cair.dip-${version}.jar to the "plugins" subdirectory of your Protégé 5 distribution.
-
-2. Backup protege-editor-owl.jar from the "bundles" subdirectory of your Protégé 5 distribution.
-
-3. Replace your existing protege-editor-owl.jar in the "bundles" subdirectory of Protégé 5 with the one in this repository.
- 
-#### Accessing plugin features in Protégé
-
-+ Enable DIP tab via the Window | Tabs menu.
-+ To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
-+ Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
-+ We strongly recommend to use DIP in conjunction with the [HermiT](http://www.hermit-reasoner.com/) Protégé plugin for accurate results. 
-+ **Note:** Theoretically, DIP can be used with any sound and complete reasoning implementation, but in practice reasoners differ in how they implement the OWLReasoner interface. For e.g., some reasoners will not update their inferences after an ontology changes unless the classify method is invoked explicitly. HermiT does not have this issue.
 
 #### License
 
