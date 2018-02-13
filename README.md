@@ -12,11 +12,11 @@ Requirements:
 
 Steps:
 
-1. Copy net.za.cair.dip-${version}.jar in this repository to the "plugins" subdirectory of your Protégé 5 distribution.
+1. Copy net.za.cair.dip-${version}.jar, in the releases section of this repository, to the "plugins" subdirectory of your Protégé 5 distribution.
 
 2. Backup protege-editor-owl.jar from the "bundles" subdirectory of your Protégé 5 distribution.
 
-3. Replace your existing protege-editor-owl.jar in the "bundles" subdirectory of Protégé 5 with the protege-editor-owl-${version}.jar in this repository.
+3. Replace your existing protege-editor-owl.jar, in the "bundles" subdirectory of Protégé 5, with the protege-editor-owl-${version}.jar in the releases section of this repository.
  
 #### Accessing plugin features in Protégé
 
