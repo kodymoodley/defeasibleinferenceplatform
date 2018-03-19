@@ -43,7 +43,3 @@ Steps:
 2. Change into the defeasibleinferenceplatform directory.
 
 3. Type mvn clean package.  On build completion, the "target" directory will contain a net.za.cair.dip-${version}.jar file.
-
-#### License
-
-[GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html)
