@@ -16,7 +16,7 @@ Steps:
 
 2. Copy net.za.cair.dip-${version}.jar, in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository, to the `plugins/` subdirectory of your Protégé Desktop installation.
 
-3. **Optional:** if you would like to add a button to subclass axioms in Protégé allowing you to automatically toggle axioms to be defeasible. Replace `protege-editor-owl.jar` in the `bundles/` directory of your Protégé Desktop installation with the version in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository. Backup the original `protege-editor-owl.jar` so you can revert back to it if you encounter any issues with the new file.
+3. **Optional:** if you would like to add a button to subclass axioms in Protégé allowing you to automatically toggle axioms to be defeasible, replace `protege-editor-owl.jar` in the `bundles/` directory of your Protégé Desktop installation with the version in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository. Backup the original `protege-editor-owl.jar` so you can revert back to it if you encounter any issues with the new file.
 
 4. Fire up Protégé and consult the [wiki](https://github.com/kodymoodley/defeasibleinferenceplatform/wiki) section of this repository to learn how to use the DIP plugin.
 
