@@ -1,7 +1,7 @@
 
 # Defeasible-Inference Platform (DIP) Protégé Desktop Plugin
 
-A Protégé Desktop plugin that enables users to specify defeasible subclass axioms and compute "typical" superclasses and instances for a given class expression. The plugin is split into two parts: 1) the tab plugin `net.za.cair.dip.jar` and 2) a tiny extension of Protégé's editor plugin `protege-owl-editor.jar` that enables users to toggle subclass axioms to be defeasible.
+A Protégé Desktop plugin that enables users to specify defeasible subclass axioms and compute "typical" superclasses and instances for a given class expression. The plugin is split into two parts: 1) the tab plugin `net.za.cair.dip.jar` and 2) an **optional** tiny extension of Protégé's editor plugin `protege-owl-editor.jar` that enables users to toggle subclass axioms to be defeasible.
 
 #### For Users: Installing and using the plugin
 
