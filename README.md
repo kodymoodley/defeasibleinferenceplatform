@@ -1,32 +1,29 @@
-# Defeasible-Inference Platform (DIP) Protégé 5 Plugin
 
-A Protégé 5 plugin that enables users to specify defeasible subclass axioms and compute "typical" superclasses and instances for a given class expression. The plugin is split into two parts: 1) the tab plugin (net.za.cair.dip.jar) and 2) a tiny extension of Protégé's editor plugin (protege-owl-editor.jar) that enables users to toggle subclass axioms to be defeasible.
+# Defeasible-Inference Platform (DIP) Protégé Desktop Plugin
 
+A Protégé Desktop plugin that enables users to specify defeasible subclass axioms and compute "typical" superclasses and instances for a given class expression. The plugin is split into two parts: 1) the tab plugin `net.za.cair.dip.jar` and 2) a tiny extension of Protégé's editor plugin `protege-owl-editor.jar` that enables users to toggle subclass axioms to be defeasible.
 
 #### For Users: Installing and using the plugin
 
 Requirements:
 
-+ Protégé 5
++ Protégé Desktop
 + Java 1.8
 
 Steps:
 
-1. Copy net.za.cair.dip-${version}.jar, in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository, to the "plugins" subdirectory of your Protégé 5 distribution.
+1. If Protégé is open, close it.
 
-2. Backup protege-editor-owl.jar from the "bundles" subdirectory of your Protégé 5 distribution.
+2. Copy net.za.cair.dip-${version}.jar, in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository, to the `plugins/` subdirectory of your Protégé Desktop installation.
 
-3. Replace your existing protege-editor-owl.jar, in the "bundles" subdirectory of Protégé 5, with the protege-editor-owl-${version}.jar in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository.
+3. **Optional:** if you would like to add a button to subclass axioms in Protégé allowing you to automatically toggle axioms to be defeasible. Replace `protege-editor-owl.jar` in the `bundles/` directory of your Protégé Desktop installation with the version in the [releases](https://github.com/kodymoodley/defeasibleinferenceplatform/releases) section of this repository. Backup the original `protege-editor-owl.jar` so you can revert back to it if you encounter any issues with the new file.
+
+4. Fire up Protégé and consult the [wiki](https://github.com/kodymoodley/defeasibleinferenceplatform/wiki) section of this repository to learn how to use the DIP plugin.
+
+**Note:** DIP uses the currently selected traditional OWL reasoner (from the Reasoner menu in Protégé) in its defeasible reasoning algorithms. Theoretically, you can select any reasoner suitable for the Description Logic (DL) used to formulate your ontology. However, in practice, OWL reasoners can differ in how they implement the [OWLReasoner](http://owlcs.github.io/owlapi/apidocs_4/org/semanticweb/owlapi/reasoner/OWLReasoner.html) interface in the [OWLAPI](http://owlcs.github.io/owlapi). For example, some reasoners will not update their inferences after an ontology changes unless the "classify" method is invoked explicitly. [HermiT](http://www.hermit-reasoner.com/) does not have this issue, and is the recommended choice to use in conjunction with DIP.
+
+[Frequently Asked Questions (FAQs)](https://github.com/kodymoodley/defeasibleinferenceplatform/wiki/Home#frequently-asked-questions-faqs)
  
-#### Accessing plugin features in Protégé
-
-+ Enable DIP tab via the Window | Tabs menu.
-+ To flag a subclass axiom as defeasible, toggle the button labelled "d" in the selected class description pane.
-+ Access the list of defeasible subclass axioms in the ontology via Window | Views | DIP views.
-+ We strongly recommend to use DIP in conjunction with the [HermiT](http://www.hermit-reasoner.com/) Protégé plugin for accurate results. 
-+ DIP will only list **named** superclasses for the given class expression. E.g., if the ontology is about university students, and the given class expression is "Student and employedBy some Company", then one might expect the typical superclass: "pays some TaxFee". However, DIP will **not** list this class. **TIP**: add an equivalence class axiom to the ontology e.g. "TaxPayer EquivalentTo pays some TaxFee". DIP will then be able to list "TaxPayer" as a typical superclass of "Student and employedBy some Company".
-+ **Note:** Theoretically, DIP can be used with any sound and complete reasoning implementation. However, in practice, reasoners differ in how they implement the OWLReasoner interface. E.g., some reasoners will not update their inferences after an ontology changes unless the "classify" method is invoked explicitly. HermiT does not have this issue.
-
 #### For Developers: Building the tab plugin from source
 
 Requirements:
