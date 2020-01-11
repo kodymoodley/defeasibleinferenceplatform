@@ -130,7 +130,7 @@ public class RationalRankingAlgorithm{
 		// Print etransforms
 		int c = 0;
 		ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-		System.out.println();
+		/*System.out.println();
 		System.out.println("E-Transforms:");
 		System.out.println("-------------");
 		for (ArrayList<OWLAxiom> trans: eT) {
@@ -148,7 +148,7 @@ public class RationalRankingAlgorithm{
 		for (OWLAxiom a: eFactory.infiniteRank) {
 			System.out.println(man.render(a));
 		}
-		System.out.println();
+		System.out.println();*/
 
 		//eT = removeEmptyRanks(eT); //remove empty ranks
 		entailmentChecks = eFactory.entailmentChecks;

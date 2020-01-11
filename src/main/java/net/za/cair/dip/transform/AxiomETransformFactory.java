@@ -72,12 +72,14 @@ public class AxiomETransformFactory{
 		this.pE = new HashSet<OWLClassExpression>();
 		this.pE.addAll(possibleExceptions);
 		e0 = new ArrayList<OWLAxiom>();
-		System.out.println();
-		System.out.println("e0:");
+		//System.out.println();
+		//System.out.println("e0:");
 		for (OWLAxiom a: this.ontologyStructure.dBox.getAxiomsAsList()){
 			//System.out.println(man.render(a));
 			e0.add(a);
 		}
+		
+		
 		//System.out.println("end e0");
 		//System.out.println();
 		eTransforms = new ArrayList<ArrayList<OWLAxiom>>();		
@@ -86,6 +88,12 @@ public class AxiomETransformFactory{
 		recursiveCount = 0;
 		noOfBrokenAxioms = 0;
 		manager = OWLManager.createOWLOntologyManager();
+		reasonerFactory.createNonBufferingReasoner(manager.createOntology(this.ontologyStructure.bBox.getAxioms()));
+		
+		//for (OWLAxiom a: this.ontologyStructure.bBox.getAxiomsAsList()){
+			//System.out.println(man.render(a));
+		//	e0.add(a);
+		//}
 		dataF = manager.getOWLDataFactory();
 	}
 	

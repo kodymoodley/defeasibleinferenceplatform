@@ -100,10 +100,7 @@ public class Ranking implements Serializable{
 	}
 	
 	public void remove(){
-		//Last element
 		int elementIndex = ranking.size()-1;
-		//First element
-		//int elementIndex = 0;
 		ranking.remove(elementIndex);
 	}
 
@@ -112,10 +109,7 @@ public class Ranking implements Serializable{
 	}
 	
 	public Rank get(){
-		//Last element
 		int elementIndex = ranking.size()-1;
-		//First element
-		//int elementIndex = 0;
 		return get(elementIndex);
 	}
 	

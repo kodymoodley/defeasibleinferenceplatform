@@ -293,7 +293,8 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
     }*/
 
 	private void loadRanking() {
-		System.out.println("ATTEMPTING TO LOAD RANKING FROM FILE");
+		System.out.println();
+		System.out.println("Attempting to load axiom ranking from file...");
 		OWLOntology theOntology = getOWLModelManager().getActiveOntology();
 		Set<OWLAxiom> logicalAxioms = new HashSet<OWLAxiom>(theOntology.getLogicalAxioms());
 
@@ -311,7 +312,6 @@ public class OWLClassExpressionEditorViewComponent extends AbstractOWLViewCompon
 					done = true;
 				}
 				else{
-					//core case
 					rankedAxioms.add(tmp);
 				}
 			}

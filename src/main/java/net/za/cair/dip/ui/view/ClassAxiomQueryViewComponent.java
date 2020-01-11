@@ -254,6 +254,7 @@ public class ClassAxiomQueryViewComponent extends AbstractOWLViewComponent{
 	   /********** Preprocessing Stage ***********/
 	   OntologyStructure structure = new OntologyStructure(getOWLModelManager().getActiveOntology());
 	   ReasoningType algorithm = ReasoningType.NAME_TYPE_MAP.get((String)reasoningList.getSelectedItem());
+	   
 	   RationalRankingAlgorithm rankingConstruction = new RationalRankingAlgorithm(reasonerFactory, structure, new HashSet<OWLClassExpression>());
 	   Ranking ranking = rankingConstruction.computeRanking();
 	   Rank infiniteRank = rankingConstruction.getInfiniteRank();

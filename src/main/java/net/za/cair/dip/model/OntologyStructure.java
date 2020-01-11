@@ -54,6 +54,7 @@ public class OntologyStructure {
 	public OWLOntology module;
 	private OWLOntology ontology;
 	private Map<OWLAxiom, OWLAxiom> originalToTransformedAxioms;
+	//ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 	
 	public OntologyStructure(){
 		aBox = new ABox();
@@ -66,21 +67,16 @@ public class OntologyStructure {
 		this.ontology = ontology;
 		dBox = new DBox();
 		bBox = new BBox();
-		//System.out.println();
-		//System.out.println("HELLO!");
-		ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+
 		Utility u = new Utility();
 		for (OWLAxiom a: ontology.getLogicalAxioms()){
 			if (u.isDefeasible(a)){
-				//System.out.println(man.render(a));//System.out.println("defeasible!");
 				dBox.add(a);
 			}
 			else{
 				bBox.add(a);
 			}
 		}
-		//System.out.println("HELLO! END!!!");
-		//System.out.println();
 	}
 	
 	private void removeFromDBox(OWLAxiom a){
