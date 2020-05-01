@@ -2,6 +2,7 @@ package net.za.cair.dip.ui.list;
 
 import org.protege.editor.core.ui.list.MListItem;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLObject;
 /*
  * Copyright (C) 2007, University of Manchester
@@ -35,18 +36,18 @@ import net.za.cair.dip.util.Utility;
  * Bio-Health Informatics Group<br>
  * Date: 27-Feb-2007<br><br>
  */
-public class DIPQueryResultsSectionItem implements MListItem {
+public class DIPExceptionsListSectionItem implements MListItem {
 
     private OWLObject object;
-    private OWLAxiom  axiom;
+    private OWLClassExpression cls;
 
 
-    public DIPQueryResultsSectionItem(OWLObject object, OWLAxiom axiom) {
+    public DIPExceptionsListSectionItem(OWLObject object, OWLClassExpression cls) {
         this.object = object;
-        this.axiom  = axiom;
+        this.cls  = cls;
     }
     
-    public DIPQueryResultsSectionItem(OWLObject object) {
+    public DIPExceptionsListSectionItem(OWLObject object) {
         this.object = object;
     }
 
@@ -54,10 +55,9 @@ public class DIPQueryResultsSectionItem implements MListItem {
         return object;
     }
     
-    public OWLAxiom getAxiom() {
-		return axiom;
+    public OWLClassExpression getClassExpression() {
+		return cls;
 	}
-
 
     public String toString() {
         return object.toString();
@@ -80,11 +80,6 @@ public class DIPQueryResultsSectionItem implements MListItem {
 
     public boolean handleDelete() {
         return false;
-    }
-
-    public boolean isDefeasible(){
-    	Utility u = new Utility();
-    	return u.isDefeasible(axiom);
     }
 
     public String getTooltip() {

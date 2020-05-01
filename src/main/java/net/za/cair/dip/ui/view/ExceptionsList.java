@@ -1,50 +1,41 @@
 package net.za.cair.dip.ui.view;
 
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import javax.swing.JComponent;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-
 import net.za.cair.dip.model.Rank;
 import net.za.cair.dip.model.Ranking;
 import net.za.cair.dip.ui.list.DIPListCellRenderer;
 import net.za.cair.dip.ui.list.DIPQueryResultsSection;
 import net.za.cair.dip.ui.list.DIPQueryResultsSectionItem;
-import net.za.cair.dip.util.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import net.za.cair.dip.util.Utility;
 
+import java.awt.Color;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.swing.JComponent;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
+import org.protege.editor.core.ui.list.MListItem;
 import org.protege.editor.owl.OWLEditorKit;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponent;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponentMediator;
 import org.protege.editor.owl.ui.view.Copyable;
-import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.semanticweb.owlapi.model.AxiomType;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
-import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
 import org.semanticweb.owlapi.model.OWLObject;
-import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
-import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
-import org.semanticweb.owlapi.reasoner.Node;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 
@@ -56,33 +47,19 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
  * kmoodley@csir.co.za<br>
  * krr.meraka.org.za/~kmoodley<br><br>
  */
+
 public class ExceptionsList extends MList implements LinkedObjectComponent, Copyable {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 8184853513690586368L;
-
-	private OWLEditorKit owlEditorKit;
-
 	private LinkedObjectComponentMediator mediator;
-
 	private List<ChangeListener> copyListeners = new ArrayList<ChangeListener>();
-	
-	private OWLDataFactory df;
-	
-	private OWLReasonerFactory reasonerFactory;
-
 	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+	private Set<OWLAxiom> ontologyAxioms;
+	private OWLDataFactory dataF = new OWLDataFactoryImpl();
+	public static final Color AXIOM_ROW_COLOR = new Color(209, 233, 255);   
+	private static final Color DEFAULT_ROW_COLOR = new Color(240, 245, 240);
 	
-	private final String PREFIX = "KodyMoodley";
-
-
 	public ExceptionsList(OWLEditorKit owlEditorKit, OWLDataFactory df, OWLReasonerFactory reasonerFactory) {
-		this.reasonerFactory = reasonerFactory;
-		this.df = df;
-		this.owlEditorKit = owlEditorKit;
-
+		this.ontologyAxioms = owlEditorKit.getOWLModelManager().getActiveOntology().getAxioms();
 		setCellRenderer(new DIPListCellRenderer(owlEditorKit));
 		mediator = new LinkedObjectComponentMediator(owlEditorKit, this);
 
@@ -96,81 +73,29 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
 		});
 	}
 	
-	private OWLClassExpression getCorrespondingComplexConcept(Set<OWLAxiom> axioms, OWLClass c){
-		//System.out.println("got here");
-		for (OWLAxiom a: axioms){
-			if (a.isOfType(AxiomType.EQUIVALENT_CLASSES)){
-				OWLEquivalentClassesAxiom equiv = (OWLEquivalentClassesAxiom)a;
-				Set<OWLSubClassOfAxiom> subs = equiv.asOWLSubClassOfAxioms();
-				OWLSubClassOfAxiom sub = null;
-				
-				for (OWLSubClassOfAxiom s: subs)
-					sub = s;
-				
-				if (man.render(sub.getSubClass()).equals(man.render(c))){
-					//System.out.println(sub.getSubClass());
-					//System.out.println(sub.getSuperClass());
-					return sub.getSuperClass();
-				}
-				
-				if (man.render(sub.getSuperClass()).equals(man.render(c))){
-					//System.out.println(sub.getSuperClass());
-					//System.out.println(sub.getSubClass());
-					return sub.getSubClass();
-				}
-			}
-		}
-		//Should be impossible
-		return null;
-	}
-	
 	public void clear() {
 		List<Object> data = new ArrayList<Object>();
 		setListData(data.toArray());
 	}
 	
-	public void setExceptionsList(Ranking ranking) throws OWLOntologyCreationException {    	
+	public void setExceptionsList(Ranking ranking) throws OWLOntologyCreationException {		
 		List<Object> data = new ArrayList<Object>();
-
 		Utility u = new Utility();
-		/*int rankIdx = ranking.size()-1;
-        Iterator<Rank> rIter = ranking.getRanking().iterator();
-        boolean done = false;
-        while (rIter.hasNext() && !done){
-        	if (rankIdx == 0){
-        		done = true;
-        	}
-        	else{
-        		Rank rank = rIter.next();
-        		data.add(new DIPQueryResultsSection("Level " + rankIdx));
-        		Set<OWLClassExpression> lhss = new HashSet<OWLClassExpression>();
-        		for (OWLAxiom a : rank.getAxioms()) {
-        			OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
-        			lhss.add(sub.getSubClass());
-
-        		}
-        		for (OWLClassExpression c : lhss) {
-        			data.add(new DIPQueryResultsSectionItem(c));
-        		}
-        		rankIdx--;
-        	}
-
-        }*/
-
+		//Ranking newRanking = rhc.enrichRankingWithStrictInclusions(ranking, ontologyAxioms, reasonerFactory);
 		ArrayList<Rank> ranks = ranking.getRanking();
-		int level = 0;
-		// If there are exceptions
-		if (ranking.size() > 1) {
-			for (Rank r: ranks) {
-				level = r.getIndex()-1;
-				// Skip non-exceptions (the first rank) 
-				if (r.getIndex() > 1) {
-					data.add(new DIPQueryResultsSection("Level " + (r.getIndex()-1)));
+		
+		// Display the ranked exceptions list (the normal exceptions)
+		if (ranking.size() > 1) { // If there are exceptions
+			for (Rank r: ranks) { 
+				if (r.getIndex() > 0) { // Skip non-exceptions (the first rank)
+					data.add(new DIPQueryResultsSection("Level " + (r.getIndex())));
 					Set<OWLClassExpression> lhss = new HashSet<OWLClassExpression>();
+					
 					for (OWLAxiom a : r.getAxioms()) {
 						OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
 						lhss.add(sub.getSubClass());
 					}
+					
 					for (OWLClassExpression c : lhss) {
 						data.add(new DIPQueryResultsSectionItem(c));
 					}
@@ -178,41 +103,41 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
 			}
 		}
 		
-//		Set<OWLClassExpression> strict_exceptions = getPossibleExceptions(ranking);
-//		
-//		System.out.println();
-//		System.out.println("strict_exceptions: " + strict_exceptions);
-//		System.out.println();
-//		
-//		if (strict_exceptions.size() > 0) {
-//			data.add(new DIPQueryResultsSection("Level " + (level+1)));
-//			for (OWLClassExpression c : strict_exceptions) {
-//				data.add(new DIPQueryResultsSectionItem(c));
-//			}
-//		}
-		
+		Set<OWLClassExpression> uninstant = new HashSet<OWLClassExpression>();
 		// If there are total exceptions
-		boolean hasTotallyExceptionalAxioms = false;
+		data.add(new DIPQueryResultsSection("Uninstantiable"));
+		int numStrictExceptions = 0;
 		if (ranking.getInfiniteRank().size() > 0) {
 			for (OWLAxiom a : ranking.getInfiniteRank().getAxioms()) {
-				if (a.isOfType(AxiomType.SUBCLASS_OF) && u.isDefeasible(a)) {
-					hasTotallyExceptionalAxioms = true;
+				
+				// If there are defeasible subclass axioms in the infinite rank,
+				// it means that they filtered into it by repeatedly applying
+				// the exceptionality procedure
+				if (a.isOfType(AxiomType.SUBCLASS_OF) && u.isDefeasible(a)) {					
+					OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
+					OWLClassExpression lhs = sub.getSubClass();
+					uninstant.add(lhs);
+					//data.add(new DIPQueryResultsSectionItem(lhs));
+					numStrictExceptions++;
 				}    			
 			}
 		}
+		
+		for (OWLClassExpression c: ranking.getUninstantiableClasses()) {
+			uninstant.add(c);
+			//System.out.println("GOTSOMEKODY");
+			//man.render(c);
+			numStrictExceptions++;
+			//data.add(new DIPQueryResultsSectionItem(c));
+		}
+		
+		for (OWLClassExpression cls: uninstant) {
+			data.add(new DIPQueryResultsSectionItem(cls));
+		}
 
-		if (hasTotallyExceptionalAxioms) {
-			data.add(new DIPQueryResultsSection("Uninstantiable"));
-			Set<OWLClassExpression> lhss = new HashSet<OWLClassExpression>();
-			for (OWLAxiom a : ranking.getInfiniteRank().getAxioms()) {
-				if (a.isOfType(AxiomType.SUBCLASS_OF) && u.isDefeasible(a)) {
-					OWLSubClassOfAxiom sub = (OWLSubClassOfAxiom)a;
-					lhss.add(sub.getSubClass());
-				}    			
-			}
-			for (OWLClassExpression c : lhss) {
-				data.add(new DIPQueryResultsSectionItem(c));
-			}
+		// Display all the totally exceptional LHS classes
+		if (numStrictExceptions == 0) {
+			data.remove(data.size()-1);
 		}
 
 		setListData(data.toArray());
@@ -221,20 +146,6 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
 
 	protected List<MListButton> getButtons(Object value) {
 		return Collections.emptyList();
-		/* if (value instanceof DIPQueryResultsSectionItem) {
-        	final OWLAxiom axiom = ((DIPQueryResultsSectionItem) value).getAxiom();
-        	List<MListButton> buttons = new ArrayList<MListButton>();
-        	buttons.add(new ExplainButton(new ActionListener() {
-            	public void actionPerformed(ActionEvent e) {
-            		ExplanationManager em = owlEditorKit.getOWLModelManager().getExplanationManager();
-            		em.handleExplain((Frame) SwingUtilities.getAncestorOfClass(Frame.class, ExceptionsList.this), axiom);
-            	}
-            }));
-            return buttons;
-        }
-        else {
-            return Collections.emptyList();
-        }*/
 	}
 
 
@@ -303,4 +214,8 @@ public class ExceptionsList extends MList implements LinkedObjectComponent, Copy
 	public void removeChangeListener(ChangeListener changeListener) {
 		copyListeners.remove(changeListener);
 	}
+	
+	protected Color getItemBackgroundColor(MListItem item) {
+    	return AXIOM_ROW_COLOR;
+    } 
 }

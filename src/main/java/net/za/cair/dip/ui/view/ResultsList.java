@@ -1,5 +1,6 @@
 package net.za.cair.dip.ui.view;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
+import org.protege.editor.core.ui.list.MListItem;
 import org.protege.editor.owl.OWLEditorKit;
 import org.protege.editor.owl.ui.OWLClassExpressionComparator;
 import org.protege.editor.owl.ui.renderer.LinkedObjectComponent;
@@ -77,7 +79,7 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     private List<ChangeListener> copyListeners = new ArrayList<ChangeListener>();
     
     private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-
+    public static final Color AXIOM_ROW_COLOR = new Color(209, 233, 255);  
 
     public ResultsList(OWLEditorKit owlEditorKit) {
         this.owlEditorKit = owlEditorKit;
@@ -490,4 +492,8 @@ public class ResultsList extends MList implements LinkedObjectComponent, Copyabl
     public void removeChangeListener(ChangeListener changeListener) {
         copyListeners.remove(changeListener);
     }
+    
+	protected Color getItemBackgroundColor(MListItem item) {
+    	return AXIOM_ROW_COLOR;
+    } 
 }

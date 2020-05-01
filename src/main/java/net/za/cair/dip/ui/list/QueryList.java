@@ -106,7 +106,7 @@ public class QueryList extends MList {
 	@Override
     protected List<MListButton> getButtons(Object value) {
 		if (value instanceof MListSectionHeader) {
-			return this.getSectionButtons((MListSectionHeader) value);
+			return getSectionButtons((MListSectionHeader) value);
 		} else if (value instanceof MListItem) {
 			List<MListButton> buttons = new ArrayList<MListButton>();
 			buttons.addAll(this.getListItemButtons((MListItem) value));

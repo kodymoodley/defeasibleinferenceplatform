@@ -149,10 +149,9 @@ public class StrictAxiomListItem extends AbstractOWLFrameSectionRow<OWLOntology,
     private static IRI defeasibleIRI = IRI.create("http://www.cair.za.net/defeasible");
     
     private void toggleDefeasible(OWLAxiom axiom, OWLOntology ontology) {
-    	System.out.println("toggling");
         OWLAxiom toAdd = null;
         if(isDefeasibleAxiom(axiom)) {
-        	System.out.println("is defeasible");
+    
             Set<OWLAnnotation> toRemove = new HashSet<OWLAnnotation>();
             for(OWLAnnotation anno : axiom.getAnnotations()) {
                 if(anno.getProperty().equals(defeasibleAnnotationProperty)) {
@@ -166,7 +165,6 @@ public class StrictAxiomListItem extends AbstractOWLFrameSectionRow<OWLOntology,
             toAdd = toAdd.getAnnotatedAxiom(allAnnos);
         }
         else {
-        	System.out.println("not defeasible");
             Set<OWLAnnotation> annos = new HashSet<OWLAnnotation>();
             annos.add(getOWLDataFactory().getOWLAnnotation(defeasibleAnnotationProperty, getOWLDataFactory().getOWLLiteral(true)));
             toAdd = axiom.getAnnotatedAxiom(annos);

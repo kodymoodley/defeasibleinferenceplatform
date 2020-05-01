@@ -139,7 +139,11 @@ public class DefeasibleInferenceHelperClass {
 		for (Rank rank: ranks){
 			ArrayList<OWLAxiom> currentRankAxioms = new ArrayList<OWLAxiom>();
 			currentRankAxioms.addAll(rank.getAxioms());
-			Rank tmp = new Rank(currentRankAxioms);
+			Rank tmp = new Rank(currentRankAxioms, rank.getIndex());
+//			System.out.println();
+//			System.out.println(tmp.getIndex() + ":");
+//			System.out.println(tmp);
+//			System.out.println();
 			result.add(tmp);
 		}
 		
@@ -278,7 +282,7 @@ public class DefeasibleInferenceHelperClass {
 			for (OWLAxiom a: r.getAxioms()){
 				rankAxioms.add(a);
 			}
-			Rank tmp = new Rank(rankAxioms);
+			Rank tmp = new Rank(rankAxioms, r.getIndex());
 			cCompatibleSubset.add(tmp);
 		}
 		
@@ -352,7 +356,7 @@ public class DefeasibleInferenceHelperClass {
 			for (OWLAxiom a: r.getAxioms()){
 				newRankAxioms.add(a);
 			}
-			Rank tmp = new Rank(newRankAxioms);
+			Rank tmp = new Rank(newRankAxioms, r.getIndex());
 			ranks.add(tmp);
 		}
 		 /**Maximally Relevant C-Compatibility calculation**/
@@ -415,7 +419,7 @@ public class DefeasibleInferenceHelperClass {
 		ArrayList<Rank> newRanks = new ArrayList<Rank>();
 		for (Rank r: ranks){
 			if (!r.getAxioms().isEmpty()){
-				Rank tmp = new Rank(r.getAxioms());
+				Rank tmp = new Rank(r.getAxioms(), r.getIndex());
 				newRanks.add(tmp);
 			}
 		}
@@ -441,7 +445,7 @@ public class DefeasibleInferenceHelperClass {
 				newRankAxioms.add(a);
 			}
 			
-			Rank tmp = new Rank(newRankAxioms);
+			Rank tmp = new Rank(newRankAxioms, r.getIndex());
 			ranks.add(tmp);
 		}
 		 /**Maximally Relevant C-Compatibility calculation**/
@@ -504,7 +508,7 @@ public class DefeasibleInferenceHelperClass {
 		ArrayList<Rank> newRanks = new ArrayList<Rank>();
 		for (Rank r: ranks){
 			if (!r.getAxioms().isEmpty()){
-				Rank tmp = new Rank(r.getAxioms());
+				Rank tmp = new Rank(r.getAxioms(), r.getIndex());
 				newRanks.add(tmp);
 			}
 		}
@@ -600,7 +604,7 @@ public class DefeasibleInferenceHelperClass {
 			for (OWLAxiom a: r.getAxioms()){
 				newRankAxioms.add(a);
 			}
-			Rank tmp = new Rank(newRankAxioms);
+			Rank tmp = new Rank(newRankAxioms, r.getIndex());
 			ranks.add(tmp);
 		}
 		 /**C-Compatibility calculation**/
@@ -651,7 +655,7 @@ public class DefeasibleInferenceHelperClass {
 			for (OWLAxiom a: r.getAxioms()){
 				newRankAxioms.add(a);
 			}
-			Rank tmp = new Rank(newRankAxioms);
+			Rank tmp = new Rank(newRankAxioms, r.getIndex());
 			ranks.add(tmp);
 		}
 		 /**C-Compatibility calculation**/

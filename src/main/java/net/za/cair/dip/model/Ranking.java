@@ -49,19 +49,31 @@ public class Ranking implements Serializable{
 	private Rank infiniteRank;
 	public String time;
 	public int entailmentChecks;
+	private Set<OWLAxiom> axiomsWithUninstantiableLHSs;
+	private Set<OWLClassExpression> uninstantiableClasses;
+	private ArrayList<ArrayList<OWLAxiom>> eTransforms;
 	
 	public Ranking(ArrayList<Rank> ranking){
+		this.axiomsWithUninstantiableLHSs = new HashSet<OWLAxiom>();
+		this.uninstantiableClasses = new HashSet<OWLClassExpression>();
+		this.eTransforms = new ArrayList<ArrayList<OWLAxiom>>();
 		time = "";
 		entailmentChecks = 0;
-		this.ranking = ranking;
+		this.ranking = new ArrayList<Rank>();
+		for (Rank r: ranking) {
+			Rank tmp = new Rank(r.getAxioms(), r.getIndex());
+			this.ranking.add(r.getIndex(), tmp);
+		}
 		this.infiniteRank = new Rank(new ArrayList<OWLAxiom>());
 	}
 	
 	public Ranking(){
+		this.axiomsWithUninstantiableLHSs = new HashSet<OWLAxiom>();
 		time = "";
 		entailmentChecks = 0;
 		this.ranking = new ArrayList<Rank>();
 		this.infiniteRank = new Rank(new ArrayList<OWLAxiom>());
+		this.eTransforms = new ArrayList<ArrayList<OWLAxiom>>();
 	}
 	
 	public Set<OWLAxiom> getAxioms(){
@@ -102,6 +114,10 @@ public class Ranking implements Serializable{
 	public void remove(){
 		int elementIndex = ranking.size()-1;
 		ranking.remove(elementIndex);
+	}
+	
+	public void setRank(Set<OWLAxiom> axioms, int index){
+		ranking.set(index, new Rank(new ArrayList<OWLAxiom>(axioms), index));
 	}
 
 	public Rank get(int index){
@@ -157,17 +173,15 @@ public class Ranking implements Serializable{
 			result += "---------------------\n";
 			for (OWLAxiom axiom: infiniteRank.getAxioms())
 				result += man.render(axiom) + "\n";
-			result += "---------------------\n";
+			result += "\n";
 		}
-		//int size = this.ranking.size()-1;
+
 		for (Rank rank: this.ranking){
 			result += "---------------------\n";
 			result += "Level " + rank.getIndex() + ":\n";
 			result += "---------------------\n";
 			for (OWLAxiom axiom: rank.getAxioms())
 				result += man.render(axiom) + "\n";
-			//result += "-------------\n";
-			//size--;
 		}
 		result += "\n";
 		return result;
@@ -176,10 +190,18 @@ public class Ranking implements Serializable{
 	public ArrayList<OWLAxiom> getRationalSet(int lastRank){
 		ArrayList<OWLAxiom> result = new ArrayList<OWLAxiom>();
 		for (int i = ranking.size()-1; i >= lastRank;i--){
-			//System.out.println(i);
 			Rank rank = ranking.get(i);
-			//System.out.println(rank);
 			result.addAll(rank.getAxioms());
+		}
+		return result;
+	}
+	
+	private ArrayList<ArrayList<OWLAxiom>> removeEmptyRanks(ArrayList<ArrayList<OWLAxiom>> set){
+		ArrayList<ArrayList<OWLAxiom>> result = new ArrayList<ArrayList<OWLAxiom>>();
+		for (ArrayList<OWLAxiom> tmp: set){
+			if (!tmp.isEmpty()){
+				result.add(tmp);
+			}
 		}
 		return result;
 	}
@@ -190,5 +212,31 @@ public class Ranking implements Serializable{
 	
 	public void setChecks(int checks){
 		entailmentChecks = checks;
+	}
+	
+	public void setUninstantiable(Set<OWLAxiom> axioms) {
+		axiomsWithUninstantiableLHSs = new HashSet<OWLAxiom>();
+		axiomsWithUninstantiableLHSs.addAll(axioms);
+	}
+	
+	public void setUninstantiableClasses(Set<OWLClassExpression> classes) {
+		uninstantiableClasses = new HashSet<OWLClassExpression>();
+		uninstantiableClasses.addAll(classes);
+	}
+	
+	public Set<OWLAxiom> getUninstantiable() {
+		return axiomsWithUninstantiableLHSs;
+	}
+	
+	public Set<OWLClassExpression> getUninstantiableClasses() {
+		return uninstantiableClasses;
+	}
+	
+	public void setETransforms(ArrayList<ArrayList<OWLAxiom>> eTransforms) {
+		this.eTransforms = removeEmptyRanks(eTransforms);
+	}
+	
+	public ArrayList<ArrayList<OWLAxiom>> getETransforms() {
+		return eTransforms;
 	}
 }

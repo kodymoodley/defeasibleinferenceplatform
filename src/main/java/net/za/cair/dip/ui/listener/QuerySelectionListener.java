@@ -49,7 +49,6 @@ public class QuerySelectionListener implements ListSelectionListener{
 			//if ql.
 			OWLAxiom selectedAxiom = ql.getSelectedAxiom(); 
 			if (selectedAxiom != null){
-				System.out.println("selection has changed!");
 				System.out.println(ql.modelManager.getRendering(selectedAxiom));
 				OWLModelManager m = ql.modelManager;
 				for (OWLAnnotationAssertionAxiom anno: m.getActiveOntology().getAnnotationAssertionAxioms(Utility.rampSelectedQueryIRI)){

@@ -1,6 +1,7 @@
 package net.za.cair.dip.ui.list;
 
 import net.za.cair.dip.ui.renderer.OWLAxiomsCellRenderer;
+import net.za.cair.dip.util.Utility;
 
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
@@ -59,10 +60,34 @@ public class DefeasibleAxiomList extends MList {
     }   
 	
 	public void setAxioms(Set<OWLAxiom> axiomSet) {
+//        List<Object> items = new ArrayList<Object>();
+//        Set<OWLAxiom> uniqueSet = new HashSet<OWLAxiom>();
+//        Utility u = new Utility();
+//        Set<OWLAnnotation> annos = new HashSet<OWLAnnotation>();
+//        annos.add(modelManager.getOWLDataFactory().getOWLAnnotation(u.defeasibleAnnotationProperty, modelManager.getOWLDataFactory().getOWLLiteral(true)));
+//        for (OWLAxiom axiom : axiomSet) {
+//        	OWLAxiom a = axiom.getAxiomWithoutAnnotations();
+//        	uniqueSet.add(a.getAnnotatedAxiom(annos));
+//        }
+//        
+//        for (OWLAxiom axiom : uniqueSet) {
+//        	items.add(new DefeasibleAxiomListItem(axiom, modelManager, editorKit));
+//        }
+//        
+//        setListData(items.toArray());
+//        setFixedCellHeight(24);
+		Utility u = new Utility();
+		System.out.println("def:");
         List<Object> items = new ArrayList<Object>();
+        Set<String> axioms = new HashSet<String>();
         for (OWLAxiom axiom : axiomSet) {
-        	items.add(new DefeasibleAxiomListItem(axiom, modelManager, editorKit));
+        	if (!axioms.contains(u.toString(axiom))) {
+        		axioms.add(u.toString(axiom));
+        		u.println(axiom);
+        		items.add(new DefeasibleAxiomListItem(axiom, modelManager, editorKit));
+        	}
         }
+        System.out.println();
         setListData(items.toArray());
         setFixedCellHeight(24);
     }

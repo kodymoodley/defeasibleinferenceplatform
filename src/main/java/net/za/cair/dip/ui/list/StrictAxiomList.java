@@ -1,6 +1,7 @@
 package net.za.cair.dip.ui.list;
 
 import net.za.cair.dip.ui.renderer.OWLAxiomsCellRenderer;
+import net.za.cair.dip.util.Utility;
 
 import org.protege.editor.core.ui.list.MList;
 import org.protege.editor.core.ui.list.MListButton;
@@ -57,12 +58,19 @@ public class StrictAxiomList extends MList {
     }   
 	
 	public void setAxioms(Set<OWLAxiom> axiomSet) {
+		Utility u = new Utility();
+		System.out.println("stric:");
         List<Object> items = new ArrayList<Object>();
+        Set<String> axioms = new HashSet<String>();
         for (OWLAxiom axiom : axiomSet) {
-        	items.add(new StrictAxiomListItem(axiom, modelManager, editorKit));
+        	if (!axioms.contains(u.toString(axiom))) {
+        		axioms.add(u.toString(axiom));
+        		u.println(axiom);
+        		items.add(new StrictAxiomListItem(axiom, modelManager, editorKit));
+        	}
         }
+        System.out.println();
         setListData(items.toArray());
-        setFixedCellHeight(24);
     }
     
     protected Color getItemBackgroundColor(MListItem item) {

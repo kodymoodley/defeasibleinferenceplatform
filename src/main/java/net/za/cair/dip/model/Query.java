@@ -109,8 +109,10 @@ public class Query {
 				intersection.add(a);
 			}
 			intersection.retainAll(module);
-			if (!intersection.isEmpty())
-				ranks.add(new Rank(new ArrayList<OWLAxiom>(intersection)));
+			if (!intersection.isEmpty()) {
+				int last_index = ranks.size()-1;
+				ranks.add(new Rank(new ArrayList<OWLAxiom>(intersection), last_index+1));
+			}
 		}
 		Rank inf = r.getInfiniteRank();
 		Set<OWLAxiom> infAx = new HashSet<OWLAxiom>();

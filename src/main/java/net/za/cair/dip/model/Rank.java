@@ -51,17 +51,26 @@ public class Rank implements Serializable{
 	private int index;
 	
 	public Rank(ArrayList<OWLAxiom> rank, int index){
-		this.rank = rank;
+		this.rank = new ArrayList<OWLAxiom>();
+		for (OWLAxiom a: rank) {
+			this.rank.add(a);
+		}
 		this.index = index;
 	}
 	
 	public Rank(ArrayList<OWLAxiom> rank){
-		this.rank = rank;
+		this.rank = new ArrayList<OWLAxiom>();
+		for (OWLAxiom a: rank) {
+			this.rank.add(a);
+		}
 		index = -1;
 	}
 	
 	public void setRank(ArrayList<OWLAxiom> rankAxioms){
-		rank = rankAxioms;
+		rank = new ArrayList<OWLAxiom>();
+		for (OWLAxiom a: rankAxioms) {
+			rank.add(a);
+		}
 	}
 	
 	public int getIndex(){

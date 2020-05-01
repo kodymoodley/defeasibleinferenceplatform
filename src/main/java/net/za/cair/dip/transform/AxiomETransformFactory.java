@@ -60,28 +60,19 @@ public class AxiomETransformFactory{
 	public int recursiveCount;
 	public int noOfBrokenAxioms;
 	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-	
-	
 	private Set<OWLClassExpression> pE;
 	
 	public AxiomETransformFactory(OWLReasonerFactory reasonerFactory, OntologyStructure ontologyStructure, Set<OWLClassExpression> possibleExceptions) throws OWLException{
-		//ManagementFactory.getThreadMXBean();
 		this.infiniteRank = new ArrayList<OWLAxiom>();
 		this.ontologyStructure = ontologyStructure;
 		this.reasonerFactory = reasonerFactory;
 		this.pE = new HashSet<OWLClassExpression>();
 		this.pE.addAll(possibleExceptions);
 		e0 = new ArrayList<OWLAxiom>();
-		//System.out.println();
-		//System.out.println("e0:");
 		for (OWLAxiom a: this.ontologyStructure.dBox.getAxiomsAsList()){
-			//System.out.println(man.render(a));
 			e0.add(a);
 		}
 		
-		
-		//System.out.println("end e0");
-		//System.out.println();
 		eTransforms = new ArrayList<ArrayList<OWLAxiom>>();		
 		eTransforms.add(e0);
 		entailmentChecks = 0;
@@ -89,100 +80,20 @@ public class AxiomETransformFactory{
 		noOfBrokenAxioms = 0;
 		manager = OWLManager.createOWLOntologyManager();
 		reasonerFactory.createNonBufferingReasoner(manager.createOntology(this.ontologyStructure.bBox.getAxioms()));
-		
-		//for (OWLAxiom a: this.ontologyStructure.bBox.getAxiomsAsList()){
-			//System.out.println(man.render(a));
-		//	e0.add(a);
-		//}
 		dataF = manager.getOWLDataFactory();
 	}
 	
 	public ArrayList<ArrayList<OWLAxiom>> generateETransforms() throws OWLException{	
-		   
 		int count = 0;
 		int broken = 0;
 		ArrayList<OWLAxiom> dInfinity = new ArrayList<OWLAxiom>();
 		for (OWLAxiom a: e0){
 			dInfinity.add(a);
 		}
-		/*while (!dInfinity.isEmpty()){
-			ArrayList<OWLAxiom> tmp2 = null;
-			tmp2 = genNextETransform(e0);
-			System.out.println();
-			System.out.println("next:");
-			for (OWLAxiom a: tmp2) {
-				System.out.println(man.render(a));
-			}
-			System.out.println("end next");
-			System.out.println();
-			boolean fixedPointReached = (tmp2.containsAll(e0));
-			if (!fixedPointReached){
-				eTransforms.add(tmp2);
-				pE = getExceptions(tmp2);
-			}
-			while (!fixedPointReached){
-				e0 = tmp2;
-				tmp2 = genNextETransform(e0);
-				fixedPointReached = (tmp2.containsAll(e0));
-				if (!fixedPointReached){
-					eTransforms.add(tmp2);
-					pE = getExceptions(tmp2);
-				}
-			}
-			dInfinity = new ArrayList<OWLAxiom>();
-			for (OWLAxiom a: tmp2){
-				dInfinity.add(a);
-			}
-			//remove from eTransforms
-			//eTransforms.removeAll(Collections.singleton(tmp2));
-			if (!dInfinity.isEmpty()){
-				//System.out.println("broken");
-				//System.out.println(dInfinity.size());
-				
-				//infiniteRank.addAll(dInfinity);
-				eTransforms.clear();
-				//System.out.println("DBox before: " + ontologyStructure.dBox.getAxioms().size());
-				//System.out.println("BBox before: " + ontologyStructure.bBox.getAxioms().size());
-				System.out.println();
-				System.out.println("?!??!?!?");
-				for (OWLAxiom axiom: dInfinity){
-					System.out.println(man.render(axiom));
-					
-					this.ontologyStructure.transferFromDBoxToBBox(axiom);
-					broken++;
-				}
-				System.out.println("SSssssss");
-				System.out.println();
-				//System.out.println();
-				//System.out.println("DBox after: " + ontologyStructure.dBox.getAxioms().size());
-				//System.out.println("BBox after: " + ontologyStructure.bBox.getAxioms().size());
-				
-				e0 = new ArrayList<OWLAxiom>();
-				//System.out.println("After moving infinite axioms to T:");
-				for (OWLAxiom a: this.ontologyStructure.dBox.getAxiomsAsList()){
-					//System.out.println(man.render(a));
-					e0.add(a);
-				}
-				eTransforms.add(e0);
-				//System.out.println("End");
-				pE = getExceptions(e0);
-				count++;
-			}
-			
-			
-		}*/
-		
+
 		while (!dInfinity.isEmpty()){
 			ArrayList<OWLAxiom> tmp2 = null;
 			tmp2 = genNextETransform(e0);
-			
-			/*System.out.println();
-			System.out.println("next:");
-			for (OWLAxiom a: tmp2) {
-				System.out.println(man.render(a));
-			}
-			System.out.println("end next");
-			System.out.println();*/
 			boolean fixedPointReached = (tmp2.containsAll(e0));
 			if (fixedPointReached) {
 				dInfinity = new ArrayList<OWLAxiom>();
@@ -204,7 +115,6 @@ public class AxiomETransformFactory{
 
 		noOfBrokenAxioms = broken;
 		recursiveCount = count;
-
 		return eTransforms;
 	}
 	

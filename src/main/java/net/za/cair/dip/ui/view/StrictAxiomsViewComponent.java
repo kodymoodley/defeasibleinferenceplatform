@@ -6,13 +6,12 @@ import java.util.Set;
 
 import javax.swing.JScrollPane;
 
-import net.za.cair.dip.ui.list.DefeasibleAxiomList;
+import net.za.cair.dip.ui.list.StrictAxiomList;
 import net.za.cair.dip.util.Utility;
 
 import org.protege.editor.owl.ui.view.AbstractActiveOntologyViewComponent;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.parameters.Imports;
 
 
 /*
@@ -47,7 +46,7 @@ import org.semanticweb.owlapi.model.parameters.Imports;
 
 public class StrictAxiomsViewComponent extends AbstractActiveOntologyViewComponent {
 	private static final long serialVersionUID = 2478857043399890008L;	
-	private DefeasibleAxiomList salList;
+	private StrictAxiomList salList;
 	
 	@Override
 	protected void disposeOntologyView() {	
@@ -55,7 +54,7 @@ public class StrictAxiomsViewComponent extends AbstractActiveOntologyViewCompone
 
 	@Override
 	protected void initialiseOntologyView() throws Exception {									
-		salList = new DefeasibleAxiomList(getOWLEditorKit(), getOWLModelManager());
+		salList = new StrictAxiomList(getOWLEditorKit(), getOWLModelManager());
 		salList.setAxioms(getStrictAxioms(getOWLModelManager().getActiveOntology()));
 		setLayout(new BorderLayout());
 		add(new JScrollPane(salList));

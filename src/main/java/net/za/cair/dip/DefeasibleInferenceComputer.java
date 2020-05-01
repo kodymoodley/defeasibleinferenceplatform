@@ -1,17 +1,12 @@
 package net.za.cair.dip;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.paukov.combinatorics3.Generator;
-import org.semanticweb.HermiT.Configuration;
-import org.semanticweb.HermiT.Reasoner;
-//import org.semanticweb.owl.explanation.impl.blackbox.hst.HittingSetTree;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -79,25 +74,18 @@ public class DefeasibleInferenceComputer {
 	public int noOfRanksInCCompatLR;
 	public int noOfRanksInCCompatMR;
 	public int noOfRanksInCCompatBR;
-	
 	private Set<OWLClass> strictSuperClasses;
 	private Set<OWLClass> typicalSuperClasses;
-	
 	public int axiomsInCCompatLR;
 	public int axiomsInCCompatMR;
 	public int axiomsInCCompatBR;
-	
 	public int entailmentChecksLR;
 	public int entailmentChecksMR;
 	public int entailmentChecksBR;
-	
 	public int entailmentChecksLC;
-	
 	public int entailmentChecksRC;
-	
 	public int entailmentChecksRelC;
-	
-	public boolean queryHasInfiniteRank;//
+	public boolean queryHasInfiniteRank;
 	public boolean queryIsNonExceptional;
 	public int noOfAxiomsKeptFromProblematicRank;
 	public int cbasisSize;
@@ -123,10 +111,9 @@ public class DefeasibleInferenceComputer {
 	private ArrayList<OWLClassExpression> lexicographicRanking;
 	private Set<OWLAxiom> global_inconsBasis;
 	private Set<OWLAxiom> global_minInconsBasis;
-	
 	private ManchesterOWLSyntaxOWLObjectRendererImpl man = new ManchesterOWLSyntaxOWLObjectRendererImpl();
 	
-	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory){ // NO_UCD (unused code)
+	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory){
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
 		this.reasonerFactory = reasonerFactory;		
 		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory);
@@ -135,7 +122,8 @@ public class DefeasibleInferenceComputer {
 	
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory, Ranking ranking){
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
-		this.ranking = ranking;
+		this.ranking = new Ranking(ranking.getRanking());
+		this.ranking.setInfiniteRank(ranking.getInfiniteRank());
 		this.reasonerFactory = reasonerFactory;		
 		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory, this.ranking);
 		this.prunedRanking = null;
@@ -145,7 +133,6 @@ public class DefeasibleInferenceComputer {
 	public DefeasibleInferenceComputer(OWLReasonerFactory reasonerFactory, OWLOntology ontology){
 		this.df = OWLManager.createOWLOntologyManager().getOWLDataFactory();
 		this.reasonerFactory = reasonerFactory;
-		//ontologyStructure = new OntologyStructure(ontology);
 		helperClass = new DefeasibleInferenceHelperClass(reasonerFactory, this.ranking);
 		this.ranking = null;
 	}
@@ -158,13 +145,12 @@ public class DefeasibleInferenceComputer {
 		for (Rank rank: ranks){
 			ArrayList<OWLAxiom> currentRankAxioms = new ArrayList<OWLAxiom>();
 			currentRankAxioms.addAll(rank.getAxioms());
-			Rank tmp = new Rank(currentRankAxioms);
+			Rank tmp = new Rank(currentRankAxioms, rank.getIndex());
 			result.add(tmp);
 		}
 		
 		ArrayList<OWLAxiom> inf = new ArrayList<OWLAxiom>();
 		inf.addAll(r.getInfiniteRank().getAxioms());
-		
 		Ranking finalResult = new Ranking(result);
 		finalResult.setInfiniteRank(new Rank(inf));
 		
@@ -193,7 +179,6 @@ public class DefeasibleInferenceComputer {
 		}
 		
 		tmpOntology = man.createOntology(ontologyAxioms);
-		
 		SyntacticLocalityModuleExtractor slme = new SyntacticLocalityModuleExtractor(man, tmpOntology, ModuleType.STAR);
 		Set<OWLAxiom> starmodule = slme.extract(signature);
 		
@@ -229,13 +214,10 @@ public class DefeasibleInferenceComputer {
 		lexicographicRanking = new ArrayList<OWLClassExpression>(); 
 		// Get hold of an OWLDataFactory to construct class expressions from OWL boolean operators
 		OWLDataFactory dataF = OWLManager.createOWLOntologyManager().getOWLDataFactory();
-		
 		// Set rank index to 1 (first level)
 		int rankIndex = 1;
-		
 		// Done: we have run through all ranks
 		boolean done = false;
-		
 		// While not done
 		while (!done) {
 			// If we have run through all ranks, set done to true
@@ -325,11 +307,9 @@ public class DefeasibleInferenceComputer {
 			do {																		// Line 3
 				int i = 1;																// Line 4
 				OWLAxiom currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
-				//System.out.println("a: " + currAssertion);
 				while ((!isConsistent(abox, currAssertion, rankingTmp)) && (i <= n)) {	// Line 5
 					i++;																// Line 6
 					currAssertion = df.getOWLClassAssertionAxiom(helperClass.getE_i(rankingTmp, i), individuals.get(j));
-					//System.out.println("b: "  + currAssertion);
 				}
 				if (i <= n)																// Line 7
 					abox_D.add(currAssertion);											// Line 8
@@ -340,7 +320,6 @@ public class DefeasibleInferenceComputer {
 			if (isConsistent(abox_D, rankingTmp)) {
 				// assign abox_D to global variable (ABox extension)
 				singleExtension.addAll(abox_D);
-				//System.out.println(singleExtension);
 				return true;
 			}
 			else {
@@ -393,8 +372,6 @@ public class DefeasibleInferenceComputer {
 					System.out.println(man.render(a));
 				}
 				System.out.println();
-
-				//System.out.println(singleExtension);
 				return true;
 			}
 			else {
@@ -769,24 +746,24 @@ public class DefeasibleInferenceComputer {
 		axioms.addAll(singleExtension);								// A_D
 		axioms.addAll(ranking.getInfiniteRank().getAxiomsAsSet());	// T
 
-		System.out.println();
-		System.out.println("ABOX EXTENSION + STRICT AXIOMS:");
-		System.out.println("-------------------------------");
-		for (OWLAxiom axom: axioms) {
-			System.out.println(man.render(axom));
-		}
-		System.out.println();
+//		System.out.println();
+//		System.out.println("ABOX EXTENSION + STRICT AXIOMS:");
+//		System.out.println("-------------------------------");
+//		for (OWLAxiom axom: axioms) {
+//			System.out.println(man.render(axom));
+//		}
+//		System.out.println();
 
 		OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
 		OWLOntology tmpOntology = ontologyManager.createOntology(axioms);	
 		//Reasoner reasoner = new Reasoner(reasonerFactory, tmpOntology);
-		System.out.println();
-		System.out.println("ABOX EXTENSION + STRICT AXIOMS: (AFTER!)");
-		System.out.println("----------------------------------------");
-		for (OWLAxiom a: tmpOntology.getAxioms()) {
-			System.out.println(man.render(a));
-		}
-		System.out.println();
+//		System.out.println();
+//		System.out.println("ABOX EXTENSION + STRICT AXIOMS: (AFTER!)");
+//		System.out.println("----------------------------------------");
+//		for (OWLAxiom a: tmpOntology.getAxioms()) {
+//			System.out.println(man.render(a));
+//		}
+//		System.out.println();
 
 		//Reasoner reasoner = new Reasoner(new Configuration(), tmpOntology);
 		OWLReasoner reasoner = reasonerFactory.createNonBufferingReasoner(tmpOntology);
